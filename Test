@@ -1,56 +1,16 @@
-resource "aws_iam_role" "glue_data_catalog_role" {
-  name = "GlueDataCatalogRole"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "glue.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
+table_type = "ICEBERG"
+
+  parameters = {
+    iceberg.catalog       = "glue"
+    classification        = "iceberg"
+    write_target_data_file_format = "parquet" # Choose your data file format (e.g., parquet, orc, avro)
+  }
+
+  storage_descriptor {
+    location      = "s3://sf-pcmng04-use1-test-autolegacyilm-s3-raw/iceberg/"
+    input_format  = "org.apache.iceberg.mr.hive.HiveIcebergInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.HiveOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.iceberg.mr.hive.HiveIcebergSerDe"
     }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "glue_data_catalog_role_policy_attachment" {
-  role       = aws_iam_role.glue_data_catalog_role.name
-  policy_arn = aws_iam_policy.glue_data_catalog_policy.arn
-}
-
-resource "aws_iam_policy" "glue_data_catalog_policy" {
-  name        = "GlueDataCatalogPolicy"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:ListBucket"
-      ],
-      "Effect": "Allow",
-      "Resource": [
-        "arn:aws:s3:::your-bucket-name/*"
-      ]
-    },
-    {
-      "Action": [
-        "glue:CreateTable",
-        "glue:UpdateTable",
-        "glue:GetTable",
-        "glue:DeleteTable"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
