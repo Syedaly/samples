@@ -1,22 +1,29 @@
-resource "aws_iam_policy" "glue_s3_access_policy" {
-  name        = "glue-s3-access-policy"
-  description = "Allow Glue to access S3 objects and decrypt with KMS"
-  policy      = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:ListBucket"]
-        Resource = [
-          "arn:aws:s3:::ExampleBucket",         # Bucket itself
-          "arn:aws:s3:::ExampleBucket/*"        # All objects in the bucket
-        ]
-      },
-      {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
-        Resource = "arn:aws:kms:region:account-id:key/key-id"  # KMS key ARN
-      }
-    ]
-  })
-}
+import sys
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit
+
+# Initialize Spark Session for AWS Glue
+spark = SparkSession.builder \
+    .appName("Repartition Iceberg Table") \
+    .config("spark.sql.catalog.glue_catalog", "org.apache.iceberg.spark.SparkCatalog") \
+    .config("spark.sql.catalog.glue_catalog.catalog-impl", "org.apache.iceberg.aws.glue.GlueCatalog") \
+    .config("spark.sql.catalog.glue_catalog.warehouse", "s3://your-warehouse-path/") \
+    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+    .getOrCreate()
+
+# Step 1: Read the unpartitioned Iceberg table
+unpartitioned_table_path = "s3://your-bucket/unpartitioned-table/"
+unpartitioned_df = spark.read.format("iceberg").load(unpartitioned_table_path)
+
+# Step 2: Add a new partition column (Static Year Example)
+repartitioned_df = unpartitioned_df.withColumn("year", lit(2024))
+
+# Step 3: Write the data to a new Iceberg table with partitioning
+repartitioned_table_path = "s3://your-bucket/repartitioned-table/"
+repartitioned_df.write \
+    .format("iceberg") \
+    .partitionBy("year") \
+    .save(repartitioned_table_path)
+
+# Stop the Spark session
+spark.stop()
