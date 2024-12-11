@@ -1,29 +1,19 @@
-import sys
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit
-
-# Initialize Spark Session for AWS Glue
-spark = SparkSession.builder \
-    .appName("Repartition Iceberg Table") \
-    .config("spark.sql.catalog.glue_catalog", "org.apache.iceberg.spark.SparkCatalog") \
-    .config("spark.sql.catalog.glue_catalog.catalog-impl", "org.apache.iceberg.aws.glue.GlueCatalog") \
-    .config("spark.sql.catalog.glue_catalog.warehouse", "s3://your-warehouse-path/") \
-    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
-    .getOrCreate()
-
-# Step 1: Read the unpartitioned Iceberg table
-unpartitioned_table_path = "s3://your-bucket/unpartitioned-table/"
-unpartitioned_df = spark.read.format("iceberg").load(unpartitioned_table_path)
-
-# Step 2: Add a new partition column (Static Year Example)
-repartitioned_df = unpartitioned_df.withColumn("year", lit(2024))
-
-# Step 3: Write the data to a new Iceberg table with partitioning
-repartitioned_table_path = "s3://your-bucket/repartitioned-table/"
-repartitioned_df.write \
-    .format("iceberg") \
-    .partitionBy("year") \
-    .save(repartitioned_table_path)
-
-# Stop the Spark session
-spark.stop()
+Category	Iceberg Tables	EDE Conversion Engine (EMR/EC2)	Athena Query (Non-Iceberg)
+Data Format Conversion	Converts files from CSV to Parquet automatically during ingestion. Includes partitioning based on schema. Can replace EDE.	Converts CSV to Parquet and applies partitioning using EMR/EC2-based in-house scripts.	No built-in data format conversion; queries whatever format is present (CSV, Parquet, JSON).
+Cost	More cost-effective as Iceberg manages schema, partitioning, and Parquet conversion internally. Requires compute instances (e.g., Glue, Spark) for ingestion.	Higher cost due to EMR/EC2 instances running for custom scripts and logic.	Lower operational costs since there’s no conversion, but inefficient querying on non-columnar formats increases query costs.
+Schema Management	Schema must be explicitly defined for Iceberg tables. This can be automated if schema/metadata files are available.	Schema is managed manually or through pre-defined tools.	Athena only uses external schemas defined in AWS Glue or Hive Catalog.
+Partitioning	Partitions data automatically during ingestion based on defined columns (e.g., year, month). Supports dynamic partitioning.	Partitions data during Parquet conversion but requires explicit logic in scripts.	No native partitioning; depends on manually creating external table mappings in Glue Catalog.
+Metadata Management	Maintains rich metadata (e.g., schema, partitioning, snapshots). Requires monitoring as metadata grows with partitions.	Metadata management is limited to the catalog setup; no advanced features like snapshots or time travel.	Relies on Glue Catalog for metadata, with fewer advanced options compared to Iceberg.
+Snapshots	Supports time travel for querying historical data states. However, dropping a table deletes all snapshots and partitions.	No support for snapshots or time travel.	No support for snapshots or time travel.
+Lifecycle Management	Can integrate with S3 lifecycle rules for object expiration (e.g., delete objects after 25 years). Requires manual setup.	S3 lifecycle rules are set externally and manually managed.	S3 lifecycle rules are set externally and manually managed.
+Performance	Optimized for queries with columnar storage (Parquet) and partition pruning.	Requires manual optimization of Parquet files and partitioning.	Performance heavily depends on the underlying file format and indexing.
+Scalability	Scales efficiently with growing datasets due to its optimized metadata and partitioning.	Requires periodic tuning as datasets grow.	Limited scalability due to query inefficiency with large, unoptimized datasets.
+Integration	Seamlessly integrates with Athena, Spark, and Presto for querying.	Limited to specific query engines or tools like Athena or Hive.	Native integration with Athena but no advanced Iceberg features.
+Effort for Setup	Requires initial effort to define schema, convert existing tables, and manage metadata.	Requires effort to create and maintain scripts for data transformation and partitioning.	Minimal setup effort if querying existing data as-is.
+Data Volume Handling	Handles large datasets (TB-scale) efficiently, converting them to Parquet and partitioning in smaller chunks.	Processes large datasets but depends on the EC2/EMR capacity and configuration.	Query performance degrades significantly for large datasets in non-columnar formats.
+Pro: Automation	Automated conversion, partitioning, and Parquet generation eliminate additional tools like EDE.	Needs custom code for transformation and partitioning.	No automation beyond Glue schema mappings.
+Pro: Partitioning	Dynamically partitions data during ingestion if partition columns (e.g., year) are available.	Requires explicit logic in the conversion engine.	External partition mapping required; no automatic partitioning.
+Con: Missing Partition Columns	If partition columns (e.g., year) are missing, additional PySpark jobs are needed to add the column before ingestion.	Requires similar custom scripts for handling partition columns.	Cannot handle partitioning natively; must rely on predefined schema in Glue.
+Con: Table Dropping	Dropping a table deletes all associated metadata, partitions, and snapshots.	No concept of metadata or snapshots to manage.	Dropping external tables in Glue does not affect the underlying data.
+Pro: Time Travel	Query historical data states using snapshots (unique to Iceberg).	No support for time travel.	No support for time travel.
+Con: Metadata Growth	Metadata grows with partitions; requires monitoring and optimization.	Minimal metadata; does not grow with partitions.	Minimal metadata; does not grow with partitions.
