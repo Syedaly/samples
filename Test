@@ -1,11 +1,116 @@
-Stage	Task	Resource/Technology	Using Lambda	Using EC2	Notes/Cost Analysis
-1. File Storage	Store CSV files in S3	S3	Files stored in a landing S3 bucket.	Files stored in a landing S3 bucket.	S3 charges apply equally for both setups. Lifecycle policies can help manage costs for long-term storage.
-2. Schema Management	Schema creation for Iceberg	Athena (Iceberg Table)	Run Athena queries manually or automate using Terraform to create schemas.	Run Athena queries manually or automate using Terraform to create schemas.	Automating schema creation with Terraform simplifies workflows and ensures reproducibility.
-3. Data Ingestion	Pick files, ingest data into Iceberg table, partition, convert	Lambda or EC2, Python/Boto3	Use Lambda to pick files, validate schema, and run SQL insert queries via Athena. Handles small files effectively but may timeout for larger files (>1GB).	Use EC2 to run the same Python script without timeout issues. Ideal for larger files or batch processing.	Lambda: Limited to 15 min, cost-effective for small files.
-EC2: More suitable for larger files or bulk operations, with higher compute costs but no timeout.
-4. Partitioning	Partition data in Iceberg table	Iceberg/Athena Partitioning	Iceberg automatically handles partitioning during data ingestion.	Iceberg automatically handles partitioning during data ingestion.	Iceberg's built-in partitioning saves the need for separate Glue jobs or ETL tools, reducing operational complexity.
-5. Automation	Automate file ingestion and schema validation	Terraform, Lambda/EC2, GitOps	Terraform automates deployment of Lambda functions, triggers, and Athena tables.	Terraform automates deployment of EC2 instances, triggers, and Athena tables.	GitOps ensures code and infrastructure changes are versioned and auditable.
-6. Monitoring	Monitor ingestion and execution	CloudWatch	Use CloudWatch to monitor Lambda execution logs and alerts for failures.	Use CloudWatch to monitor EC2 logs, execution metrics, and alerts for failures.	Monitoring costs depend on data ingested and retention policies.
-7. Validation	Validate successful ingestion	Athena Queries, CloudWatch	Validate data ingestion by querying Iceberg tables via Athena.	Validate data ingestion by querying Iceberg tables via Athena.	Validation steps are common to both setups.
-8. Cost Comparison	Operational cost of processing	S3, Athena, Lambda/EC2	- Lambda Costs: $0.20 per million requests + compute time ($0.00001667/GB-second for 1GB).	- EC2 Costs: Dependent on instance type (e.g., $0.096/hour for t3.medium or $0.48/hour for c5.large).	Lambda is cost-effective for smaller files.
-EC2 is better suited for long-running jobs.
+import boto3
+import re
+from datetime import datetime
+
+s3 = boto3.client('s3')
+ilm_year = 25
+
+def tag_s3_object(bucket_name, key, term_year):
+    try:
+        s3.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={
+                'TagSet': [
+                    {
+                        'Key': 'TERM_YEAR',
+                        'Value': str(term_year)
+                    }
+                ]
+            }
+        )
+        message = f"Successfully tagged the S3 object {key} with termination year {term_year}."
+        print(message)
+        return {"status": message}
+    except Exception as e:  # Catch all exceptions
+        print(f"An unexpected error occurred to tag S3 object {key}: {str(e)}")
+        raise  # Re-raise the exception to handle it in the handler
+
+def update_s3_lifecycle(bucket_name, key, term_year):
+    # Retrieve the current lifecycle configuration
+    try:
+        current_config = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+        current_rules = current_config['Rules']
+    except s3.exceptions.NoSuchLifecycleConfiguration:
+        current_rules = []
+    except Exception as e:
+        error_message = f"An error occurred while retrieving the lifecycle configuration: {str(e)}"
+        print (error_message)
+        raise
+
+    delete_year = ilm_year + term_year
+
+    # Check if delete-year rule already exists
+    rule_id = f'delete-year-{delete_year}'
+    existing_ids = [rule['ID'] for rule in current_rules]
+
+    if rule_id not in existing_ids:
+        # Calculate the expiration date
+        current_date = datetime.now()
+        current_year = current_date.year
+
+        if delete_year > current_year:
+            expiration_date = f'{delete_year}-12-31'
+        else:
+            expiration_date = f'{current_year}-12-31'
+
+        new_rule = {
+            'ID': rule_id,
+            'Status': 'Enabled',
+            'Filter': {
+                'Tag': {
+                    'Key': 'TERM_YEAR',
+                    'Value': str(term_year)
+                }
+            },
+            'Expiration': {
+                'Date': expiration_date
+            }
+        }
+
+        # Add the new rule to the existing rules
+        current_rules.append(new_rule)
+
+        # Update the bucket's lifecycle configuration with the combined rules
+        try:
+            s3.put_bucket_lifecycle_configuration(
+                Bucket=bucket_name,
+                LifecycleConfiguration={'Rules': current_rules}
+            )
+            message = f"Lifecycle rule expiration {rule_id} added to bucket {bucket_name}."
+            print(message)
+            return {"status": message}
+        except Exception as e:
+            error_message = f"An unexpected error occurred updating lifecycle for object {key} in bucket {bucket_name}: {str(e)}"
+            print(error_message)
+            raise
+    else:
+        message = f"Lifecycle rule expiration {rule_id} already exists in bucket {bucket_name}."
+        print(message)
+        return {"status": message}
+
+def s3_lambda_handler(event, context):
+    try:
+        bucket_name = event['Records'][0]['s3']['bucket']['name']
+        key = event['Records'][0]['s3']['object']['key']
+
+        # Convert '%3D' to '=' in the key
+        key = key.replace('%3D', '=')
+
+        match = re.search(r'TERM_YEAR=(\d+)', key)
+        if match:
+            term_year = int(match.group(1))
+
+            # Tag the object with TERM_YEAR
+            tag_s3_object(bucket_name, key, term_year)
+
+            # Update the bucket's lifecycle configuration
+            update_s3_lifecycle(bucket_name, key, term_year)
+        else:
+            message = f"No TERM_YEAR found in object {key} of bucket {bucket_name}."
+            print(message)
+            return {"status": message} 
+    except Exception as e:
+        error_message = f"An unexpected error occurred for object {key} in bucket {bucket_name}: {str(e)}"
+        print(error_message)
+        return {"status": "Error", "error_message": error_message}
