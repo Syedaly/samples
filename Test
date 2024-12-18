@@ -1,213 +1,24 @@
-part1:
-
-import boto3
-from botocore.exceptions import ClientError, BotoCoreError
-
-s3 = boto3.client('s3')
-
-def tag_s3_object(bucket_name, key, term_year):
-    """
-    Tags an S3 object with a specified termination year.
-
-    Args:
-        bucket_name (str): The name of the S3 bucket.
-        key (str): The object key in the S3 bucket.
-        term_year (int/str): The termination year to tag the object with.
-
-    Returns:
-        dict: Success or error response.
-    """
-    try:
-        # Add a tag to the S3 object
-        s3.put_object_tagging(
-            Bucket=bucket_name,
-            Key=key,
-            Tagging={
-                'TagSet': [
-                    {
-                        'Key': 'TERM_YEAR',
-                        'Value': str(term_year)
-                    }
-                ]
-            }
-        )
-        success_message = f"Successfully tagged the S3 object {key} with termination year {term_year}."
-        return {"status": "success", "message": success_message}
-
-    except ClientError as ce:
-        # Handle AWS-specific client errors
-        error_message = f"Client error while tagging S3 object {key}: {ce.response['Error']['Message']}"
-        return {"status": "error", "message": error_message}
-
-    except BotoCoreError as bce:
-        # Handle other boto3 core errors
-        error_message = f"BotoCore error while tagging S3 object {key}: {str(bce)}"
-        return {"status": "error", "message": error_message}
-
-    except Exception as e:
-        # Handle any unexpected exceptions
-        error_message = f"An unexpected error occurred while tagging S3 object {key}: {str(e)}"
-        return {"status": "error", "message": error_message}
-		
-		
-Part2:
-
-	import boto3
-from botocore.exceptions import ClientError, BotoCoreError
-from datetime import datetime
-
-s3 = boto3.client('s3')
-
-def update_s3_lifecycle(bucket_name, key, term_year):
-    """
-    Updates the S3 bucket lifecycle configuration with a delete rule based on term_year.
-
-    Args:
-        bucket_name (str): The name of the S3 bucket.
-        key (str): The S3 object key (unused but kept for structure).
-        term_year (int): The termination year to determine the delete rule.
-
-    Returns:
-        dict: Success or error response.
-    """
-    # Step 1: Retrieve the current lifecycle configuration
-    try:
-        current_config = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
-        current_rules = current_config['Rules']
-    except s3.exceptions.NoSuchLifecycleConfiguration:
-        current_rules = []
-    except ClientError as ce:
-        error_message = f"Client error while retrieving lifecycle configuration for bucket {bucket_name}: {ce.response['Error']['Message']}"
-        return {"status": "error", "message": error_message}
-    except BotoCoreError as bce:
-        error_message = f"BotoCore error while retrieving lifecycle configuration for bucket {bucket_name}: {str(bce)}"
-        return {"status": "error", "message": error_message}
-    except Exception as e:
-        error_message = f"An unexpected error occurred while retrieving lifecycle configuration: {str(e)}"
-        return {"status": "error", "message": error_message}
-
-    # Step 2: Compute delete year and rule ID
-    try:
-        delete_year = ilm_year + term_year
-        rule_id = f'delete-year-{delete_year}'
-        existing_ids = [rule['ID'] for rule in current_rules]
-    except Exception as e:
-        error_message = f"Error during delete year calculation or rule ID processing: {str(e)}"
-        return {"status": "error", "message": error_message}
-
-    # Step 3: Add rule if it doesn't already exist
-    if rule_id not in existing_ids:
-        try:
-            # Calculate expiration date
-            current_date = datetime.now()
-            current_year = current_date.year
-
-            if delete_year > current_year:
-                expiration_date = f'{delete_year}-12-31'
-            else:
-                expiration_date = f'{current_year}-12-31'
-
-            new_rule = {
-                'ID': rule_id,
-                'Status': 'Enabled',
-                'Filter': {
-                    'Tag': {
-                        'Key': 'TERM_YEAR',
-                        'Value': str(term_year)
-                    }
-                },
-                'Expiration': {
-                    'Date': expiration_date
-                }
-            }
-
-            # Append the new rule and update the lifecycle configuration
-            current_rules.append(new_rule)
-
-            s3.put_bucket_lifecycle_configuration(
-                Bucket=bucket_name,
-                LifecycleConfiguration={'Rules': current_rules}
-            )
-            success_message = f"Lifecycle rule {rule_id} added to bucket {bucket_name}."
-            return {"status": "success", "message": success_message}
-
-        except ClientError as ce:
-            error_message = f"Client error while updating lifecycle for bucket {bucket_name}: {ce.response['Error']['Message']}"
-            return {"status": "error", "message": error_message}
-        except BotoCoreError as bce:
-            error_message = f"BotoCore error while updating lifecycle for bucket {bucket_name}: {str(bce)}"
-            return {"status": "error", "message": error_message}
-        except Exception as e:
-            error_message = f"An unexpected error occurred while updating lifecycle: {str(e)}"
-            return {"status": "error", "message": error_message}
-    else:
-        # If rule already exists
-        success_message = f"Lifecycle rule {rule_id} already exists in bucket {bucket_name}."
-        return {"status": "success", "message": success_message}
-
-
-
-Part3:
-
-import re
-from botocore.exceptions import BotoCoreError, ClientError
-
-def s3_lambda_handler(event, context):
-    """
-    AWS Lambda handler for processing S3 events, tagging objects, and updating lifecycle rules.
-
-    Args:
-        event (dict): S3 event payload.
-        context: Lambda execution context.
-
-    Returns:
-        dict: Success or error response.
-    """
-    try:
-        # Extract bucket name and key from event
-        bucket_name = event['Records'][0]['s3']['bucket']['name']
-        key = event['Records'][0]['s3']['object']['key']
-
-        # Convert '%3D' to '=' in the key
-        key = key.replace('%3D', '=')
-
-        # Extract TERM_YEAR from key
-        match = re.search(r'TERM_YEAR=(\d+)', key)
-        if match:
-            term_year = int(match.group(1))
-
-            try:
-                # Tag the object with TERM_YEAR
-                tag_response = tag_s3_object(bucket_name, key, term_year)
-
-                # Update the bucket's lifecycle configuration
-                lifecycle_response = update_s3_lifecycle(bucket_name, key, term_year)
-
-                return {
-                    "status": "success",
-                    "tagging_response": tag_response,
-                    "lifecycle_response": lifecycle_response
-                }
-            except (ClientError, BotoCoreError) as boto_err:
-                error_message = f"An AWS error occurred for object {key} in bucket {bucket_name}: {str(boto_err)}"
-                return {"status": "error", "message": error_message}
-            except Exception as e:
-                error_message = f"Error during tagging or lifecycle update for object {key} in bucket {bucket_name}: {str(e)}"
-                return {"status": "error", "message": error_message}
-
-        else:
-            # No TERM_YEAR in the key
-            message = f"No TERM_YEAR found in object {key} of bucket {bucket_name}."
-            return {"status": "error", "message": message}
-
-    except KeyError as ke:
-        error_message = f"KeyError - Missing expected field in event payload: {str(ke)}"
-        return {"status": "error", "message": error_message}
-    except IndexError as ie:
-        error_message = f"IndexError - Unexpected event structure: {str(ie)}"
-        return {"status": "error", "message": error_message}
-    except Exception as e:
-        error_message = f"An unexpected error occurred: {str(e)}"
-        return {"status": "error", "message": error_message}"
-
-
+Step 1: Prepare the S3 Data
+Upload the data files to the appropriate S3 bucket, ensuring they are organized into partitioned folders (e.g., s3://bucket-name/folder/partition_key=partition_value/).
+Step 2: Create a Glue Database
+Navigate to the AWS Glue service.
+Create a new Glue database (e.g., my_database) to logically group the tables.
+Step 3: Create a Glue Table with Partitions
+Use the Glue Table creation wizard:
+Specify the table name (e.g., my_table).
+Set the database as the one created in Step 2.
+Provide the S3 path where the partitioned data resides.
+Define the schema (columns and data types).
+Add partition keys (e.g., state, year).
+Step 4: Configure the AWS Athena Workspace
+Open AWS Athena.
+Ensure the correct S3 location for query results is set in Query Results Settings.
+Select the Glue database created in Step 2 from the Athena console.
+Step 5: Query Data Using SQL
+Run a SQL query in the Athena query editor to access the data.
+Example: SELECT * FROM my_table WHERE state = 'CA';
+Step 6: Refresh Partitions (if necessary)
+If new partitioned data is added to S3, use:
+sql
+Copy code
+MSCK REPAIR TABLE my_table;
