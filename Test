@@ -1,109 +1,136 @@
-package terratests
+### Understanding Amazon S3 Glacier and Its Applications in Mainframe Data Migration
 
-import (
-	"os"
-	"testing"
-	"time"
-	"fmt"
-	"os/exec"
-	"github.com/stretchr/testify/assert"
-	"github.com/gruntwork-io/terratest/modules/files"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
-)
+---
 
-func TestS3BucketExists(t *testing.T) {
-	    //setting scalr workspace
-	    scalrOrg := "sf-pcmngd04-test-tenant-autolegacyilm-env"
-	    scalrEnv := "sf-pcmngd04-test-tenant-autolegacyilm-env"
-	    scalrWorkspace := "sf-pcmngd04-autolegacyilm-workspace"
-	    scalrCmd := exec.Command("scalr", "workspace", "get", scalrWorkspace, "--org", scalrOrg, "--env", scalrEnv, "--output", "json")
-	    scalrCmd.Dir = "../terraform/modules/s3"
-	    accountId := os.Getenv("ACCOUNTID")
-	    fmt.Println("Running in account: " + accountId)
-	    defer os.Remove("../terraform/modules/s3/provider.tf")
-	    defer os.Remove("../terraform/modules/s3/backend.tf")
-	    defer os.Remove("../terraform/modules/s3/s3_test.auto.tfvars")
-		source := "provider.tf"
-		destination := "../terraform/modules/s3/provider.tf"
-		if _, err := os.Stat(destination); os.IsNotExist(err) {
-			t.Fatalf("Destination file does not exist: %s", destination)
-		} else  if err !=nil {
-			fmt.Printf("Error checking destination file:  %v\n", err)
-		} else {
-			fmt.Println("Destination file exists:", destination)
-		}
-		// if _, err := os.Stat(source); os.IsNotExist(err) {
-		// 	t.Fatalf("Source file does not exist: %s", source)
-		// } else {
-		// 	fmt.Println("Source file exists:" + source)
-		// }
-		err := files.CopyFile(source, destination)
-		assert.NoError(t, err, "Error while copying files")
-		if _, err := os.Stat(destination);
-		os.IsNotExist(err) {
-			t.Fatalf("File not copied: %s", destination)
-			fmt.Println("File not copied: " + destination)
-		}
-	    files.CopyFile("backend.tf", "../terraform/modules/s3/backend.tf")
-	    // creating temp folder and copying tfvars file using CopyFile function
-	    s3_landing_folder := test_structure.CopyTerraformFolderToTemp(t, "../terraform/modules/s3", "./")
-	    files.CopyFile("s3_test.auto.tfvars", "../terraform/modules/s3/s3_test.auto.tfvars")
-	    files.CopyFile("s3_test.auto.tfvars", s3_landing_folder+"/"+"s3_test.auto.tfvars")
+## Table of Contents
+1. **Introduction to Amazon S3 Glacier**
+   - History of Glacier
+   - Transition to S3 Glacier
+   - Overview of S3 Storage Classes
+2. **S3 Glacier Use Cases**
+   - Long-term Data Archival
+   - Regulatory Compliance
+   - Disaster Recovery
+3. **Cost Optimization with S3 Glacier**
+   - Storage Class Cost Comparisons
+   - Pricing Structure
+   - Cost Examples for Archival Workloads
+4. **ILM Policies for S3 Glacier**
+   - What is Information Lifecycle Management (ILM)?
+   - Example Scenarios for Mainframe Data
+5. **Case Study: Migrating Legacy Mainframe Data to AWS**
+   - Initial Data Assessment
+   - Choosing the Right S3 Storage Class
+   - Sample Policies for Automated Data Movement
+6. **Conclusion**
 
-	    terraformOptions := &terraform.Options{
-		        // The path to where our Terraform code is located
-		        // added temporary folder
-		        TerraformDir: s3_landing_folder,
+---
 
-				// Environment variables to set when running Terraform
-		        EnvVars: map[string]string{
-			            "AWS_DEFAULT_REGION": "us-east-1",
-		        },
-				// temporary fix for the "logging empty output error" till we get permanent fix
-				// https://github.com/hashicorp/terraform-provider-aws/issues/31139
-		        RetryableTerraformErrors: map[string]string{
-			            ".*empty output.*": "bug in aws_s3_bucket_logging, intermittent error",
-		        },
-		        MaxRetries:         5,
-		        TimeBetweenRetries: 5 * time.Second,
-	    }
+## 1. Introduction to Amazon S3 Glacier
 
-	    // At the end of the test, run `terraform destroy`
-	    defer terraform.Destroy(t, terraformOptions)
-	    // Run `terraform init` and `terraform apply`
-	    terraform.InitAndApply(t, terraformOptions)
-	    expectedName := "sf-pcmngd04-use1-test-autolegacyilm-s3-landing"
+### History of Glacier
+Amazon Glacier was introduced in 2012 as a secure and low-cost storage service for data archiving and long-term backup. It offered retrieval times ranging from minutes to hours, making it ideal for infrequently accessed data.
 
-	    outputName := "s3_landing_name"
-	    s3BucketNames := terraform.Output(t, terraformOptions, outputName)
-	    assert.Equal(t, s3BucketNames, expectedName)
+In 2018, Glacier was integrated into Amazon S3 as S3 Glacier storage classes, providing a unified interface with tiered retrieval options. This transition enabled more flexible data lifecycle management and improved cost efficiency.
+
+### Overview of S3 Storage Classes
+Amazon S3 provides multiple storage classes to suit different data storage needs:
+- **S3 Standard**: General-purpose storage for frequently accessed data.
+- **S3 Intelligent-Tiering**: Automatically moves data to the most cost-effective tier based on access patterns.
+- **S3 Standard-Infrequent Access (IA)**: For infrequent access with lower storage cost.
+- **S3 Glacier Instant Retrieval**: Low-cost storage with millisecond retrieval.
+- **S3 Glacier Flexible Retrieval**: Optimized for data that can tolerate minutes to hours for retrieval.
+- **S3 Glacier Deep Archive**: Lowest-cost storage for data that rarely needs to be accessed.
+
+---
+
+## 2. S3 Glacier Use Cases
+
+### Long-term Data Archival
+Organizations use S3 Glacier to store data for years to meet business or regulatory requirements, such as:
+- Financial records
+- Healthcare patient records
+- Legal documents
+
+### Regulatory Compliance
+S3 Glacier supports compliance standards such as HIPAA, GDPR, and CCPA by ensuring data durability, security, and long-term retention.
+
+### Disaster Recovery
+As part of a disaster recovery plan, S3 Glacier provides cost-effective solutions for storing critical backup data.
+
+---
+
+## 3. Cost Optimization with S3 Glacier
+
+### Storage Class Cost Comparisons
+| Storage Class                 | Monthly Storage Cost | Retrieval Cost | Retrieval Time         |
+|-------------------------------|----------------------|----------------|------------------------|
+| S3 Standard                  | Higher               | N/A            | Milliseconds           |
+| S3 Glacier Instant Retrieval | Low                  | Low            | Milliseconds           |
+| S3 Glacier Flexible Retrieval| Very Low             | Moderate       | Minutes to Hours       |
+| S3 Glacier Deep Archive      | Lowest               | Higher         | Hours                  |
+
+### Pricing Structure
+- **Storage Costs**: Charged per GB stored per month.
+- **Retrieval Costs**: Charged per GB retrieved and based on retrieval time.
+- **Data Transfer Costs**: Standard AWS data transfer rates apply.
+
+---
+
+## 4. ILM Policies for S3 Glacier
+
+### What is Information Lifecycle Management (ILM)?
+ILM is the process of managing data throughout its lifecycle—from creation and active use to archival and deletion. ILM policies automate the transition of data between storage classes based on predefined rules.
+
+### Example Scenarios for Mainframe Data
+#### Scenario: Mainframe Data Migration to S3 Glacier
+- **Data Characteristics**:
+  - Legacy transactional records
+  - Accessed only for audits or regulatory inquiries
+  - Requires retention for 7 years
+
+- **Policy Requirements**:
+  - Store data in S3 Standard for the first 30 days
+  - Transition to S3 Glacier Flexible Retrieval for long-term storage
+
+---
+
+## 5. Case Study: Migrating Legacy Mainframe Data to AWS
+
+### Initial Data Assessment
+Analyze the following:
+1. Data volume and types
+2. Retention and retrieval requirements
+3. Compliance obligations
+
+### Choosing the Right S3 Storage Class
+- Short-term: **S3 Standard** for immediate access.
+- Long-term: **S3 Glacier Flexible Retrieval** for archival.
+
+### Sample ILM Policies
+#### Example Policy: Transition Mainframe Data to S3 Glacier
+```json
+{
+  "Rules": [
+    {
+      "ID": "TransitionToGlacier",
+      "Prefix": "mainframe-data/",
+      "Status": "Enabled",
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "GLACIER"
+        }
+      ],
+      "Expiration": {
+        "Days": 2555
+      }
+    }
+  ]
 }
+```
+---
 
+## 6. Conclusion
+Amazon S3 Glacier provides a cost-effective and secure solution for storing legacy mainframe data. By implementing ILM policies, organizations can automate data movement, reduce costs, and ensure compliance with retention requirements.
 
-
-Error:
-
-FatalError{Underlying: error while running command: exit status 1; ╷
-        	            	│ Error: Invalid provider configuration
-        	            	│ 
-        	            	│ Provider "registry.terraform.io/hashicorp/aws" requires explicit
-        	            	│ configuration. Add a provider block to the root module and configure the
-        	            	│ provider's required arguments as described in the provider documentation.
-        	            	│ 
-        	            	╵
-        	            	╷
-        	            	│ Error: No valid credential sources found
-        	            	│ 
-        	            	│   with provider["registry.terraform.io/hashicorp/aws"],
-        	            	│   on <empty> line 0:
-        	            	│   (source code not available)
-        	            	│ 
-        	            	│ Please see https://registry.terraform.io/providers/hashicorp/aws
-        	            	│ for more information about providing credentials.
-        	            	│ 
-        	            	│ Error: failed to refresh cached credentials, no EC2 IMDS role found,
-        	            	│ operation error ec2imds: GetMetadata, request canceled, context deadline
-        	            	│ exceeded
-        	            	│ 
-        	            	╵}
