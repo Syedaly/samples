@@ -6,6 +6,58 @@ Data will reside in Glacier Archive for 10 years
 Data in Glacier Archive not accessed in 180 days will be moved to Glacier Deep Archive for the remainder of the 10 years
 Data deleted as per Information Retention Policy (IRP) and can no longer be recovered.
 
+{
+  "Rules": [
+    {
+      "ID": "Move to Infrequent Access after 3 months",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "Days": 90,
+          "StorageClass": "STANDARD_IA"
+        }
+      ]
+    },
+    {
+      "ID": "Move to Glacier after 2 years in Infrequent Access",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "Days": 730, // 2 years = 365 days * 2
+          "StorageClass": "GLACIER"
+        }
+      ]
+    },
+    {
+      "ID": "Move to Deep Archive if not accessed in 180 days",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "Days": 3650, // 10 years = 365 days * 10
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ],
+      "NoncurrentVersionTransitions": [
+        {
+          "NoncurrentDays": 180,
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ]
+    },
+    {
+      "ID": "Delete data after 10 years",
+      "Status": "Enabled",
+      "Filter": {},
+      "Expiration": {
+        "Days": 3650 // 10 years = 365 days * 10
+      }
+    }
+  ]
+}
+
 
 Example of AWS Tagging Archive Pattern
 Claims data stays active for 120 days after Claims Close date then gets moved to inactive.
@@ -15,9 +67,137 @@ Data in Glacier Archive not accessed in 180 days will be moved to Glacier Deep A
 Data deleted as per Information Retention Policy (IRP) and can no longer be recovered.
 It will be the responsibility of the Business Partner to create business logic and appropriate storage bucket tags for data movement between storage buckets.
 
+{
+  "Rules": [
+    {
+      "ID": "Move to Inactive Storage after 120 days from Claims Close Date",
+      "Status": "Enabled",
+      "Filter": {
+        "Tag": {
+          "Key": "ClaimsCloseDate",
+          "Value": ""
+        }
+      },
+      "Transitions": [
+        {
+          "Days": 120,
+          "StorageClass": "STANDARD_IA"
+        }
+      ]
+    },
+    {
+      "ID": "Move to Glacier after 2 years from Claims Close Date",
+      "Status": "Enabled",
+      "Filter": {
+        "Tag": {
+          "Key": "ClaimsCloseDate",
+          "Value": ""
+        }
+      },
+      "Transitions": [
+        {
+          "Days": 730, // 2 years = 365 days * 2
+          "StorageClass": "GLACIER"
+        }
+      ]
+    },
+    {
+      "ID": "Move to Deep Archive if not accessed in 180 days",
+      "Status": "Enabled",
+      "Filter": {
+        "Tag": {
+          "Key": "ClaimsCloseDate",
+          "Value": ""
+        }
+      },
+      "Transitions": [
+        {
+          "Days": 3650, // 10 years = 365 days * 10
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ],
+      "NoncurrentVersionTransitions": [
+        {
+          "NoncurrentDays": 180,
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ]
+    },
+    {
+      "ID": "Delete data after 10 years from Claims Close Date",
+      "Status": "Enabled",
+      "Filter": {
+        "Tag": {
+          "Key": "ClaimsCloseDate",
+          "Value": ""
+        }
+      },
+      "Expiration": {
+        "Days": 3650 // 10 years = 365 days * 10
+      }
+    }
+  ]
+}
+
 Example of AWS Intelligent Tiering Archive Pattern
 S3 Intelligent-Tiering: Amazon S3 Intelligent-Tiering (S3 Intelligent-Tiering) is the first cloud storage that automatically reduces your storage costs on a granular object level by automatically moving data to the most cost-effective access tier based on access frequency, without performance impact, retrieval fees, or operational overhead. You can use S3 Intelligent-Tiering as the default storage class for virtually any workload, especially data lakes, data analytics, new applications, and user-generated content.
 S3 Intelligent-Tiering monitors access patterns and moves objects that have not been accessed for 30 consecutive days to the Infrequent Access tier and after 90 days of no access to the Archive Instant Access tier. For data that does not require immediate retrieval, you can set-up S3 Intelligent-Tiering to monitor and automatically move objects that aren’t accessed for 180 days or more to the Deep Archive Access tier to realize up to 95% in storage cost savings.
 
+{
+  "Rules": [
+    {
+      "ID": "S3 Intelligent-Tiering with Automatic Tiering",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "StorageClass": "INTELLIGENT_TIERING"
+        }
+      ],
+      "IntelligentTieringConfiguration": {
+        "Id": "IntelligentTieringRule",
+        "Status": "Enabled",
+        "Tierings": [
+          {
+            "Days": 30,
+            "AccessTier": "ARCHIVE_ACCESS"
+          },
+          {
+            "Days": 90,
+            "AccessTier": "DEEP_ARCHIVE_ACCESS"
+          }
+        ]
+      }
+    }
+  ]
+}
+
 Example of AWS Glacier Instant Retrieval Archive Pattern
 Amazon S3 Glacier Instant Retrieval is a archive storage class that delivers the lowest cost storage for long-lived data that is rarely accessed and requires milliseconds retrieval. S3 Glacier Instant Retrieval delivers the fastest access to archive storage, with the same throughput and milliseconds access as the S3 Standard and S3 Standard-IA storage classes. Additionally, the Amazon S3 Intelligent-Tiering storage class now automatically includes a new Archive Instant Access tier for rarely accessed data that needs millisecond retrieval and high throughput performance.
+
+{
+  "Rules": [
+    {
+      "ID": "Move to Glacier Instant Retrieval after 90 days",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER_IR"
+        }
+      ]
+    },
+    {
+      "ID": "Move to Deep Archive after 180 days of no access",
+      "Status": "Enabled",
+      "Filter": {},
+      "Transitions": [
+        {
+          "Days": 180,
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ]
+    }
+  ]
+}
