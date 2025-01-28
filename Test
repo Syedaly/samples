@@ -1,6 +1,23 @@
-Storage Class	Use Case	Retrieval Time	Cost (Example)
-S3 Standard	Frequently accessed data	Milliseconds	$0.023/GB/month
-S3 Intelligent-Tiering	Unknown or changing access patterns	Milliseconds	$0.023/GB/month
-S3 Glacier Instant Retrieval	Archived data with immediate access needs	Milliseconds	$0.004/GB/month
-S3 Glacier Flexible Retrieval	Archived data with occasional access	Minutes to hours	$0.0036/GB/month
-S3 Glacier Deep Archive	Long-term archival with rare access	Hours	$0.00099/GB/month
+Example of Time Based Archive Pattern using S3 Lifecycle Configuration
+New data created and saved in Active Storage Tier with 3 month retention.
+After 3 months the data will be moved to the Infrequent Access Storage Tier for 2 years.
+After 2 years the Infrequent Access data will be moved to Glacier Archive Tier for 10 years.
+Data will reside in Glacier Archive for 10 years
+Data in Glacier Archive not accessed in 180 days will be moved to Glacier Deep Archive for the remainder of the 10 years
+Data deleted as per Information Retention Policy (IRP) and can no longer be recovered.
+
+
+Example of AWS Tagging Archive Pattern
+Claims data stays active for 120 days after Claims Close date then gets moved to inactive.
+Two years after Claims close date is reached data gets archived to Glacier.
+Glacier needs to retain Archive data for 10 years then can be deleted from Glacier.
+Data in Glacier Archive not accessed in 180 days will be moved to Glacier Deep Archive for the remainder of the 10 years
+Data deleted as per Information Retention Policy (IRP) and can no longer be recovered.
+It will be the responsibility of the Business Partner to create business logic and appropriate storage bucket tags for data movement between storage buckets.
+
+Example of AWS Intelligent Tiering Archive Pattern
+S3 Intelligent-Tiering: Amazon S3 Intelligent-Tiering (S3 Intelligent-Tiering) is the first cloud storage that automatically reduces your storage costs on a granular object level by automatically moving data to the most cost-effective access tier based on access frequency, without performance impact, retrieval fees, or operational overhead. You can use S3 Intelligent-Tiering as the default storage class for virtually any workload, especially data lakes, data analytics, new applications, and user-generated content.
+S3 Intelligent-Tiering monitors access patterns and moves objects that have not been accessed for 30 consecutive days to the Infrequent Access tier and after 90 days of no access to the Archive Instant Access tier. For data that does not require immediate retrieval, you can set-up S3 Intelligent-Tiering to monitor and automatically move objects that aren’t accessed for 180 days or more to the Deep Archive Access tier to realize up to 95% in storage cost savings.
+
+Example of AWS Glacier Instant Retrieval Archive Pattern
+Amazon S3 Glacier Instant Retrieval is a archive storage class that delivers the lowest cost storage for long-lived data that is rarely accessed and requires milliseconds retrieval. S3 Glacier Instant Retrieval delivers the fastest access to archive storage, with the same throughput and milliseconds access as the S3 Standard and S3 Standard-IA storage classes. Additionally, the Amazon S3 Intelligent-Tiering storage class now automatically includes a new Archive Instant Access tier for rarely accessed data that needs millisecond retrieval and high throughput performance.
