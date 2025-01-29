@@ -1,8 +1,54 @@
-Feature	S3 Tables with Iceberg	Iceberg Tables in Athena
-Performance	Up to 3x faster query performance and up to 10x higher transactions per second due to optimizations and managed maintenance tasks. (aws.amazon.com)	Performance depends on manual optimizations and infrastructure management in Athena. Can be slower than S3Tables as Athena queries Iceberg files directly in S3.
-Maintenance	Automatically handles table maintenance tasks such as compaction and snapshot management, ensuring efficient query performance and storage optimization over time. (aws.amazon.com)	Maintenance must be handled manually. You may need to manage compactions and snapshots on your own, which could require additional steps for optimization.
-Integration	Integrates with AWS Glue Data Catalog, allowing for seamless querying and visualization using AWS analytics services like Amazon Athena, Redshift, EMR, and QuickSight. (aws.amazon.com)	Integration with AWS Glue Data Catalog or other tools like Redshift and QuickSight requires manual configuration. Athena needs to access Iceberg data directly from S3 and may need additional setup for seamless querying.
-Schema Evolution	Supports schema evolution, allowing users to add, rename, or remove columns without disrupting the underlying data. (docs.aws.amazon.com)	Athena supports Iceberg schema evolution, but manual setup and handling might be required to manage the schema in the Athena environment.
-Data Versioning	Provides data versioning, enabling time-travel queries to access historical data versions. (docs.aws.amazon.com)	Iceberg tables in Athena also support data versioning, but you’ll need to manage the versioning manually through queries or by using additional tools for tracking changes.
-Access Control	Offers table-level access controls, allowing for fine-grained permissions management. (aws.amazon.com)	Access control is more manual in Athena. You can use AWS IAM for general access but may need additional layers (like S3 policies or manual data encryption) for fine-grained control.
-Cost	Managed service may have associated costs, but optimizations can lead to cost savings in the long run. (aws.amazon.com)	Costs depend on the queries and data scanned by Athena. Since you’re using S3 storage directly, Athena will charge based on the data processed, which can become costly if queries are not optimized.
+Managed Apache Iceberg Tables in S3
+Introduction to S3 Tables
+
+S3 Tables API for Iceberg integration:
+S3tables: ListTable
+S3tables: CreateTable
+S3tables: GetTableMetadataLocation
+S3tables: UpdateTableMetadataLocation
+S3tables: DeleteTable
+These operations are performed at both the table bucket level and table level.
+Table Operations
+
+Resource Policies:
+S3tables: PutTablePolicy: Enable the creation of resource policies for the table.
+Table Maintenance Policies: Configure things like target file size for compaction and snapshot retention.
+Table Management:
+S3tables: PutTableBucketPolicy: Apply policies at the bucket level.
+S3tables: PutTableMaintenanceConfig: Configure compaction frequency and snapshot availability.
+S3tables: PutTableBucketMaintenanceConfig: Define bucket-level maintenance settings.
+CRUD Operations
+
+Each Iceberg table is stored separately in a unique S3 bucket under a location such as /unique-string.
+No deletes and no overwrites are allowed on the data, ensuring data integrity and immutability.
+All activity is monitored and audited by AWS CloudTrail.
+Optimized Performance
+
+10X transactions per second (TPS) and 3X faster queries with Apache Iceberg on S3.
+Automatic Compaction:
+Consolidates smaller files into larger files for optimized performance.
+Periodic compaction runs based on table maintenance policies.
+Security Controls
+
+Namespace-based access permissions: Logical grouping within the S3 bucket, e.g., Dev, Test, etc.
+Access Control: Fine-grained access controls for data management at various levels (e.g., column-level access).
+Storage Cost Optimization
+
+Snapshots are created with every update/commit, helping manage historical data.
+Aging and Cleanup: Old snapshots can be manually cleaned or aged out based on policy.
+Periodic Maintenance:
+Snapshot expiration: Set retention policies for snapshots.
+Unreferenced file removal: Periodic cleanup of unreferenced files.
+Policy-driven maintenance: Define whether to delete or overwrite files during maintenance operations.
+Workload Integration in S3
+
+Integrates with:
+EMR, Athena, Redshift, QuickSight, and Kinesis Data Firehose.
+Automatic Glue Integration: Seamless integration with AWS Glue for data cataloging and analytics.
+Glue Catalog:
+Integrated with AWS Lake Formation for fine-grained access control like column-level permissions.
+Table Creation and Data Insertion
+
+EMR is currently the only supported method for creating Iceberg tables.
+Future Availability: Redshift and Athena support for Iceberg table creation is expected in the future.
+Using Glue: Create tables via EMR, then manage access and catalog them with AWS Glue for analytics. This enables fine-grained access control for analytics tools like Athena and Redshift.
