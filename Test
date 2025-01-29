@@ -1,131 +1,28 @@
-Data Validation Between S3 Landing and S3 Raw Buckets
-
-This document outlines the detailed process for validating the data integrity, consistency, and schema conformity between the S3 Landing bucket (storing CSV files) and the S3 Raw bucket (storing Parquet files). The validation process ensures that the migration and transformation from CSV to Parquet formats are accurate and reliable. The following sections address the validation areas in detail:
-
-1. Source Record Count vs. Target Record Count
-
-Objective:
-
-To ensure that the number of records in the source (CSV) files matches the number of records in the target (Parquet) files after transformation.
-
-Approach:
-
-CSV Record Count: Use a script or tool (e.g., Python pandas, AWS Glue, or AWS SDKs) to read each CSV file in the S3 Landing bucket and count the total number of rows, excluding the header.
-
-Parquet Record Count: Use tools like PyArrow, AWS Glue, or Spark to read each corresponding Parquet file in the S3 Raw bucket and count the rows.
-
-Validation: Compare the row counts for each corresponding file in the Landing and Raw buckets. Log discrepancies for further analysis.
-
-Tools and Methods:
-
-Python (boto3, pandas, pyarrow, or fastparquet)
-
-AWS Athena queries
-
-AWS Glue jobs
-
-Key Considerations:
-
-Ensure that empty rows or corrupted records in the CSV files are identified and handled during transformation.
-
-Account for partitioning, as records may be spread across multiple Parquet files.
-
-2. Source File Size vs. Target File Size
-
-Objective:
-
-To verify that the overall size of the source and target files aligns within acceptable tolerances, accounting for differences due to compression and format change.
-
-Approach:
-
-File Size in Landing Bucket: Use the AWS S3 SDK or CLI to calculate the size of each CSV file in bytes.
-
-File Size in Raw Bucket: Similarly, calculate the size of the corresponding Parquet files.
-
-Validation: Check if the target file size is within an expected range. Parquet files are typically smaller due to compression but should not have extreme size deviations unless data loss or duplication has occurred.
-
-Tools and Methods:
-
-AWS CLI (aws s3 ls for file sizes)
-
-Python (boto3 to retrieve file metadata)
-
-Key Considerations:
-
-Include compression ratio differences when analyzing size variations.
-
-Investigate any large discrepancies to identify potential issues such as missing data or inefficient compression.
-
-3. Schema Validation / Column Headers Match
-
-Objective:
-
-To confirm that the column names and their data types in the CSV files match the corresponding schema and columns in the Parquet files, accounting for any transformations.
-
-Approach:
-
-Metadata in Landing Bucket: Extract schema information from metadata files or CSV headers stored in the Landing bucket.
-
-Schema in Raw Bucket: Extract schema information from the Parquet files using tools like PyArrow or AWS Glue.
-
-Validation:
-
-Compare column names to ensure they match.
-
-Validate that data types are consistent, allowing for intentional transformations (e.g., string in CSV to varchar in Parquet or integer to bigint).
-
-Tools and Methods:
-
-Python (pandas for CSV, pyarrow for Parquet)
-
-AWS Glue crawlers for schema inference
-
-AWS Athena for schema comparison queries
-
-Key Considerations:
-
-Document any expected changes in data types due to transformation.
-
-Ensure schema evolution is handled appropriately if applicable.
-
-4. Comparing Data Consistency (Rows)
-
-Objective:
-
-To ensure that the actual data content in the rows of the source CSV files matches the data content in the rows of the target Parquet files.
-
-Approach (Proof of Concept):
-
-Sample Data Extraction:
-
-Extract a subset of data (e.g., first 100 rows) from a sample CSV file.
-
-Extract the corresponding rows from the Parquet file.
-
-Data Comparison:
-
-Use hash functions (e.g., MD5 or SHA256) to create checksums for each row and compare them.
-
-Alternatively, perform direct value-by-value comparison for all columns.
-
-Tools and Methods:
-
-Python (pandas for CSV and pyarrow for Parquet processing)
-
-AWS Glue or Athena for SQL-based row comparison
-
-Key Considerations:
-
-Handle differences in null representations between CSV (NULL, empty) and Parquet (null).
-
-Investigate and resolve discrepancies, such as truncated or corrupted data.
-
-General Best Practices:
-
-Automate validation tasks using AWS Lambda, Step Functions, or scheduled Glue jobs.
-
-Maintain a detailed log of all validation results to track issues and resolutions.
-
-Implement retry logic for handling transient failures during validation.
-
-This validation framework ensures a robust and thorough comparison of the source and target data, helping maintain the integrity and accuracy of the data transformation process.
+Feature	S3 Tables with Iceberg	Only Iceberg
+Performance	Up to 3x faster query performance and up to 10x higher transactions per second due to optimizations and managed maintenance tasks. 
+AWS.AMAZON.COM
+Performance depends on manual optimizations and infrastructure management, which can be complex and resource-intensive. 
+MEDIUM.COM
+Maintenance	Automatically handles table maintenance tasks such as compaction and snapshot management, ensuring efficient query performance and storage optimization over time. 
+AWS.AMAZON.COM
+Requires manual management of maintenance tasks, which can be complex and time-consuming. 
+MEDIUM.COM
+Integration	Integrates with AWS Glue Data Catalog, allowing for seamless querying and visualization using AWS analytics services like Amazon Athena, Redshift, EMR, and QuickSight. 
+AWS.AMAZON.COM
+Integration with analytics services requires manual configuration and management. 
+ICEBERG.APACHE.ORG
+Schema Evolution	Supports schema evolution, allowing users to add, rename, or remove columns without disrupting the underlying data. 
+DOCS.AWS.AMAZON.COM
+Supports schema evolution with manual management. 
+ICEBERG.APACHE.ORG
+Data Versioning	Provides data versioning, enabling time-travel queries to access historical data versions. 
+DOCS.AWS.AMAZON.COM
+Provides data versioning with manual management. 
+ICEBERG.APACHE.ORG
+Access Control	Offers table-level access controls, allowing for fine-grained permissions management. 
+AWS.AMAZON.COM
+Access control must be managed manually, often requiring complex configurations. 
+ICEBERG.APACHE.ORG
+Cost	Managed service may have associated costs, but optimizations can lead to cost savings in the long run. 
+AWS.AMAZON.COM
+Potential for higher costs due to manual management and lack of optimizations. 
