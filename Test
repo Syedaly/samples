@@ -1,54 +1,26 @@
-Managed Apache Iceberg Tables in S3
-Introduction to S3 Tables
+s3://<bucket-name>/iceberg-tables/<table-name>/
+    ├── metadata/
+    │   ├── version-<timestamp>.metadata.json  (metadata snapshots)
+    │   ├── version-<timestamp>.metadata.json  (previous versions)
+    ├── data/
+    │   ├── <partition-key>=<value>/
+    │   │   ├── <filename-1>.parquet
+    │   │   ├── <filename-2>.parquet
+    │   │   └── ...
+    └── manifests/
+        ├── <manifest-file>.json  (points to data files)
 
-S3 Tables API for Iceberg integration:
-S3tables: ListTable
-S3tables: CreateTable
-S3tables: GetTableMetadataLocation
-S3tables: UpdateTableMetadataLocation
-S3tables: DeleteTable
-These operations are performed at both the table bucket level and table level.
-Table Operations
 
-Resource Policies:
-S3tables: PutTablePolicy: Enable the creation of resource policies for the table.
-Table Maintenance Policies: Configure things like target file size for compaction and snapshot retention.
-Table Management:
-S3tables: PutTableBucketPolicy: Apply policies at the bucket level.
-S3tables: PutTableMaintenanceConfig: Configure compaction frequency and snapshot availability.
-S3tables: PutTableBucketMaintenanceConfig: Define bucket-level maintenance settings.
-CRUD Operations
+s3://<bucket-name>/athena-iceberg-tables/<table-name>/
+    ├── metadata/
+    ├── data/
+    └── manifests/
 
-Each Iceberg table is stored separately in a unique S3 bucket under a location such as /unique-string.
-No deletes and no overwrites are allowed on the data, ensuring data integrity and immutability.
-All activity is monitored and audited by AWS CloudTrail.
-Optimized Performance
+s3://<bucket-name>/s3tables-iceberg/<table-name>/
+    ├── metadata/
+    ├── data/
+    └── manifests/
 
-10X transactions per second (TPS) and 3X faster queries with Apache Iceberg on S3.
-Automatic Compaction:
-Consolidates smaller files into larger files for optimized performance.
-Periodic compaction runs based on table maintenance policies.
-Security Controls
-
-Namespace-based access permissions: Logical grouping within the S3 bucket, e.g., Dev, Test, etc.
-Access Control: Fine-grained access controls for data management at various levels (e.g., column-level access).
-Storage Cost Optimization
-
-Snapshots are created with every update/commit, helping manage historical data.
-Aging and Cleanup: Old snapshots can be manually cleaned or aged out based on policy.
-Periodic Maintenance:
-Snapshot expiration: Set retention policies for snapshots.
-Unreferenced file removal: Periodic cleanup of unreferenced files.
-Policy-driven maintenance: Define whether to delete or overwrite files during maintenance operations.
-Workload Integration in S3
-
-Integrates with:
-EMR, Athena, Redshift, QuickSight, and Kinesis Data Firehose.
-Automatic Glue Integration: Seamless integration with AWS Glue for data cataloging and analytics.
-Glue Catalog:
-Integrated with AWS Lake Formation for fine-grained access control like column-level permissions.
-Table Creation and Data Insertion
-
-EMR is currently the only supported method for creating Iceberg tables.
-Future Availability: Redshift and Athena support for Iceberg table creation is expected in the future.
-Using Glue: Create tables via EMR, then manage access and catalog them with AWS Glue for analytics. This enables fine-grained access control for analytics tools like Athena and Redshift.
+Data Format: Both methods (Iceberg in Athena and S3 Tables with Iceberg) store data in Parquet format.
+Metadata Management: Metadata is handled by AWS Glue or S3 API, tracking table schema, snapshots, and partitioning.
+Directory Structure: Data is stored under partitioned directories for optimal querying and performance, while metadata is stored in metadata/ and manifests/ directories.
