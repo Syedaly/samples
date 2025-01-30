@@ -1,66 +1,18 @@
-Amazon S3 Glacier Object Lock
-Amazon S3 Glacier Object Lock is a feature that helps prevent accidental deletion and ensures that data remains immutable for a defined period. It is commonly used for regulatory compliance and Write Once, Read Many (WORM) storage models.
+Scenario 1: No Access for 90 Days → Moves to GLACIER_IR
+Day 0: File uploaded to Intelligent-Tiering (Frequent Access)
+Day 30: No access → Moves to Infrequent Access Tier
+Day 90: Still no access → Moves to Glacier Instant Retrieval (GLACIER_IR)
+✅ Scenario 2: Accessed After 75 Days → Resets Countdown
+Day 0: File uploaded
+Day 75: Accessed once → Stays in Frequent Access
+Day 165 (next 90 days of inactivity): Moves to GLACIER_IR
+✅ Scenario 3: Accessed After Moving to GLACIER_IR → Moves Back to Frequent
+Day 90: Object moves to GLACIER_IR
+Day 120: Accessed → Moves back to Frequent Access, and the 90-day cycle restarts.
+Day 210 (90 days after last access): Moves back to GLACIER_IR.
+✅ Scenario 4: No Access for 365 Days → Move to Deep Archive (If Rule Exists)
+Day 90: Moves to GLACIER_IR.
+Day 365: Still no access → Moves to Deep Archive (only if lifecycle rule exists).
 
-Two Modes of Glacier Object Lock
-Governance Mode
-
-Protects objects from deletion or modification by most users.
-Only users with special IAM permissions (s3:BypassGovernanceRetention) can override or remove the lock.
-Compliance Mode
-
-Strictest protection—once locked, the object CANNOT be deleted or modified by anyone, including the root user.
-The lock cannot be bypassed or removed until the retention period expires.
-Example: Use Case for Retention and Preventing Accidental Deletion
-🔹 Scenario:
-A company stores financial records that must be retained for 7 years as per regulations. They want to ensure the data cannot be deleted or modified during this period.
-
-S3 Glacier Object Lock Configuration (Example Rule in JSON)
-json
-Copy
-Edit
-{
-    "Rules": [
-        {
-            "ID": "FinancialRecordsRetention",
-            "Filter": {
-                "Prefix": "financial-records/"
-            },
-            "Status": "Enabled",
-            "Transitions": [
-                {
-                    "Days": 90,
-                    "StorageClass": "GLACIER_IR"
-                },
-                {
-                    "Days": 365,
-                    "StorageClass": "GLACIER_DEEP_ARCHIVE"
-                }
-            ],
-            "NoncurrentVersionTransitions": [
-                {
-                    "NoncurrentDays": 30,
-                    "StorageClass": "GLACIER_IR"
-                }
-            ],
-            "AbortIncompleteMultipartUpload": {
-                "DaysAfterInitiation": 7
-            },
-            "ObjectLockConfiguration": {
-                "ObjectLockEnabled": "Enabled",
-                "Rule": {
-                    "DefaultRetention": {
-                        "Mode": "Compliance",
-                        "Days": 2555  // 7 years retention
-                    }
-                }
-            }
-        }
-    ]
-}
-Breakdown of the Rule:
-Applies to objects under the prefix "financial-records/".
-After 90 days, moves objects to Glacier Instant Retrieval (GLACIER_IR).
-After 1 year (365 days), moves objects to Glacier Deep Archive.
-Retains objects for 7 years (2555 days) in Compliance mode, ensuring:
-Data cannot be modified or deleted until the retention period expires.
-Deletes incomplete multipart uploads after 7 days to save storage costs.
+https://aws.amazon.com/s3/storage-classes/intelligent-tiering/
+https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html
