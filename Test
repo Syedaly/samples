@@ -1,18 +1,12 @@
-Scenario 1: No Access for 90 Days → Moves to GLACIER_IR
-Day 0: File uploaded to Intelligent-Tiering (Frequent Access)
-Day 30: No access → Moves to Infrequent Access Tier
-Day 90: Still no access → Moves to Glacier Instant Retrieval (GLACIER_IR)
-✅ Scenario 2: Accessed After 75 Days → Resets Countdown
-Day 0: File uploaded
-Day 75: Accessed once → Stays in Frequent Access
-Day 165 (next 90 days of inactivity): Moves to GLACIER_IR
-✅ Scenario 3: Accessed After Moving to GLACIER_IR → Moves Back to Frequent
-Day 90: Object moves to GLACIER_IR
-Day 120: Accessed → Moves back to Frequent Access, and the 90-day cycle restarts.
-Day 210 (90 days after last access): Moves back to GLACIER_IR.
-✅ Scenario 4: No Access for 365 Days → Move to Deep Archive (If Rule Exists)
-Day 90: Moves to GLACIER_IR.
-Day 365: Still no access → Moves to Deep Archive (only if lifecycle rule exists).
+cannot directly query data in Deep Archive; you must first restore it. -> this means the below statement that take time to restore ?
 
-https://aws.amazon.com/s3/storage-classes/intelligent-tiering/
-https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects.html
+Retrieval Time from Deep Archive:
+
+Standard Tier: 12-48 hours
+Bulk Tier: 48+ hours (cheaper but slower)
+
+Standard Tier: Typically takes between 12 to 48 hours to restore the data. After the restoration, you can access and query it.
+
+Bulk Tier: This is cheaper but slower, with restoration time usually exceeding 48 hours.
+
+Once the data is restored, you can perform queries on it, but the process can be slow due to the restoration time. If you need faster access, the Standard Tier would be preferable, but if cost is a concern and speed is less critical, the Bulk Tier could be a better option.
