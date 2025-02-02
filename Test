@@ -1,12 +1,421 @@
-cannot directly query data in Deep Archive; you must first restore it. -> this means the below statement that take time to restore ?
 
-Retrieval Time from Deep Archive:
 
-Standard Tier: 12-48 hours
-Bulk Tier: 48+ hours (cheaper but slower)
+Then the file extensions of the filters because, ultimately, they are going to SFTP, isn't it? So, you know, like, what are the file formats or type of things that they are going to, provide us? Because that's the technicality that we need to really know. Approximate size of the filters because based on a state or type of things that are going to happen, things will change. But keeping an eye on it is significantly important.
 
-Standard Tier: Typically takes between 12 to 48 hours to restore the data. After the restoration, you can access and query it.
+Count of the filters. Definitely, how much was the record set and everything? You know? Main thing is known issues and how to deal with data quality, like special characters, data formats, missing and null values. Because all these things will need meetings with business for acceptance.
 
-Bulk Tier: This is cheaper but slower, with restoration time usually exceeding 48 hours.
+This cannot be resolved amongst us as technology teams. What is the business looking at? So for anything and everything for us as a team, being a data provider, we need that meeting. So whenever we are trying to do work end to end, the program team, definitely, they are the ones who coordinate or do type of things, but we have to definitely propose that no. We need business acceptance purpose.
 
-Once the data is restored, you can perform queries on it, but the process can be slow due to the restoration time. If you need faster access, the Standard Tier would be preferable, but if cost is a concern and speed is less critical, the Bulk Tier could be a better option.
+Because ultimately, who is going to be responsible? We are going to be responsible. Yeah, Bharat. Go ahead. Yeah.
+
+Yeah. Vikram. So when you see the issues and how we dealt with, right, Vikram, so do we need to understand, like, how the ED team will, consider these issues? Or do we have do we need to Mhmm. How we'll have to consider this as, like, from our team standpoint?
+
+So because we'd be fetching the data from corrupts to ED. Right? So do we need to know from the root level or, like, what the it like, how the ED have landed and ED will send the data to us? So, So, let's understand it through the recent use case, Bharat. Okay?
+
+N with a tilde was being explained, isn't it? That that's a special character. And even in the meeting, someone said there are many other characters that are there. Okay? Now one thing is how to convert it into AWS.
+
+Okay? And converting it, is it exact? Is it different? Okay? That is one.
+
+Now our data is going to move from mainframe to Direct Connect to transfer family to landing bucket. Okay. Is it changing? What's happening over there? And then when it reaches our bucket, how it's going to look like in raw buckets?
+
+So definitely, we need to work with associated teams also. What are they trying to do? If they are not doing it, we will have to do it on us on our side. Make sure that and why we are trying to do this? Before we do anything in such type of conditions, you need a business meeting.
+
+If you tell them that, okay, this is n tilde in, mainframes, but from our bucket, you are going to see it as n. Are you okay with that, or do you want exactly the same as n till then? See, that's where requirements starts becoming very important. That's the key. And who is going to put a firm foot on that?
+
+Not you. Not me. Not anyone. Business. What is business looking at?
+
+Does it clarify what you have just asked? Yeah. Yes. Yes, Vivek. So this needs a lot of not just technical thing.
+
+Oh, NTRIDA is there and you just set it down in AWS and trying to figure out solutions working, not working, and all that. That is one key. But working with other teams because see, if you will do it on your solo side, thinking that, okay, this is going to be something that, I can apply some service or something as an algorithm through Python and convert it into n tilde. But then you have not considered EDE because our our design considers EDE. So that's where you have to see what is EDE doing.
+
+Are they able to do that? If not, then we have to do it on our own on the raw buckets in con like, coordination with, business people. Does it clarify more deeply? Yeah. Yes.
+
+Arvind, you you were asking something. Yeah. So I thought that, like, the tilde n tilde is a special character that the ETE can actually handle, and they're not gonna recode it. That the mainframe team will not re will not change the character. It will transmit to us as n tilde.
+
+What they're trying to do is I think that's why they have that, like, 256 characters. They're trying to figure out which character will give EDE a problem. And so what they're trying to do is if it's those characters are gonna give, EDE a problem, they will recode it on the mainframe side so that they don't get we don't get the error when it gets transmitted. But all of the other special character that EDE can handle, we will get it as is. I thought that was the that was that is their plan to do.
+
+No. No. I I understand the fact that you are trying to convey, Arvind. Another is the way to understand what I just mentioned in my document. So I was just giving an example for that.
+
+Does it make sense? Yeah. Yes, Arvind. So, basically, what I've been saying is, like, just to handle how the special characters, but it is broader, like, not less than characters, like, any issues, like, a generically, mutually written type of thing. Yeah.
+
+Yeah. So the whatever I have written, you know, like, definitely there are some decisions that have already been taken. One thing is to document all the decisions that are related to this. So let's write it down so that you are somewhere on a web page where people can go and see directly. It should not be hidden beneath a 15 or 50 page document.
+
+Okay? This is something that should be very clear. Okay. So and these are just my points. Okay?
+
+I I have not considered what you are thinking. Okay? So this like like the way Armin just pointed out. So I just wrote that down, but this is something that we will need. Okay?
+
+Now So quick question, we made this, the filter thing. Right? Is that kind of, the requirements for the state and, the date that is that what it means, the filter requirements from both the systems? How they will be filtering the data? Yeah.
+
+They would they might be so see, to my understanding, you know, like, let's say you have a table. Okay. And it has got, say, 500 elements. I do not know what in the world. They are only getting, let's say, 50 elements out of it.
+
+Okay? And that too with a certain condition. Okay? Okay. Knowing that in totality, what was the main source and what was the certain filters that were applied at a higher level so that we are receiving the data.
+
+Today, business comes to you and all of us saying that why is this particular data element not considered? What will you say? Because the filter requirement was this. Isn't it? Yeah.
+
+If you are going to go round and round about it explaining, not even knowing about it, what type of a data producer we all are then? So or or rather, you know, like and I can understand that there are some intricacies that we will have to contact mainframe people. But at least on a higher level, having a knowledge about it and awareness is significantly important. Does it make sense? Yeah, Vivek.
+
+Sure. I'm not saying that line by line everything should be known to all of us. No. Line by line should be known to the mainframe teams. But what they are trying to do or achieve on their side at a higher level in a summary thing should be embedded in our minds.
+
+Got it. Yeah. Then environments to understand. They have integration performance. I do not know what in the world they have.
+
+You know, like, and how we are going to connect with all of these particular systems. We need have a clear cut strategy written down. On PL world, we have exact clear strategies about how mainframe is being connected to AWS connect or EDU transfer family. We should know end to end. And if there are 4 diagrams that clarifies that, I'm okay with a small page having 4 diagrams.
+
+But having that clarity is definitely needed. We are not here to pick up anything and understanding in our minds, oh, yeah. This today is development. Tomorrow it's OPR. 3rd day it's a performance, and I know it all.
+
+No. Don't do that. Having a clarity so that any additional person who comes in sees that particular diagram, and they will automatically understand how the whole system has been architected, formulated, or the pattern that is being used. Any questions? Okay.
+
+Now when it comes to AWS Direct Connect, what is AWS Connect? You know? A small thing that we should all know, and how is it configured for ILM product, which is very important. The reason is State Farm, big company, isn't it? How is it formulated?
+
+What are the implications that we are going to handle? Who owns what? We need to know. So we need to have a group session about AWS Direct Connect, and it should be a part of onboarding too. So, Bharat, for your documents, you know, like, wherever you find something related to AWS Connect that needs, as a, you know, like a line item or a link over there on that page, knowledge items.
+
+Okay? Yep. Then any POC or technology work that we have to do and spending, I know the connection has been maintained, but we are still looking for the, FTP IDs and everything. So those are the type of things that we can mention. File sizes that can be handled.
+
+Definitely it's AWS Direct Connect so it can definitely do a lot. But just for our sake and for our product, is there anything that we need to know? Support contact. Partner, you know, like any, developer or lead engineer or something that we need to work with in case of any failure strategy? Do we have to rerun from the point of failure to avoid duplication or does it run with duplicates?
+
+Have some conversation with them so that we know exactly what to do in future in case something like that happens. Any limitations on maintenance that we need to know? Like, how do they maintain? Like, do they have any maintenance cycles? Type of things that they do.
+
+What happens when any conversion or an upgrade happens? Having a slight idea of that exactly tells you, okay, my system was not working because, oh, AWS Direct Connect has some maintenance going on or something like that. And then the environments to understand various different environments and how they connect with mainframe. Any questions? So, Nava, Vivek, so, all these AWS didn't correct.
+
+Right? So if I correctly understand, we need to prepare everything that what this Direct Connect is doing so that even the new resources are over from our team can refer to the document by clicking the AWS Direct Connect, the document hyperlink. They'll be able to know what it how to do and what it is doing from our project standpoint. So since we already have the high level, like, it can be what it do. So do you want us to capture that in our document?
+
+Devil is always there in the details, not in a single line. Yeah. Especially I'm not asking you to write PhD thesis or something like that, but at the same time, be factual about these are the important things that we need to really be worried about. Got it. Got it.
+
+Yeah. I have a question on that because we don't so although ILM doesn't connect, that use direct or doesn't use directly connect use Direct Connect because our our product use that EDE transfer family. Mhmm. And so the connection is between the EDE transfer family and Direct Connect, But we don't interact with that, you know, directly with the Direct Connect. No.
+
+No. I I understand that, Darwin. So the thing is being aware is important. These type of exercises and having this particular knowledge boils down to our awareness related to the nature of things. Is it the top Yeah.
+
+Go ahead. I was just gonna say. So it'll just be high level that I can't. Right? I agree.
+
+Yep. Okay. Thank you. Yep. Yep.
+
+I think knowing whatever in the green and the red blue will be directly or indirectly depends on the purple thing, which we, like, we'll be doing right moving. So knowing all these things on the IMS t v 2 and AWS Direct Connect, we our strategies can also be changed, when we consume for the ADE. Yep. So the thing is either ADE transfer family should be capable of letting us know that AWS Direct Connect is failing. Isn't it?
+
+They should actually let us know really. Isn't it? Probably yeah. Go ahead. Sorry.
+
+I was gonna say, because Alex said yesterday that those error messages would probably be on the JCS. Yeah. So I was gonna say, because Alex said yesterday that those error messages would probably be on the JCL that they run. So the errors the errors that we will get will be the, I guess, the notification from the conversion engine. Because they said most of the the error would be on the JCL when they run.
+
+Especially for the AWS Direct Connect also? Well, so so when when they run the JCL, right, it goes through Direct Connect and then EDA transfer family. But if there's an error on the transfer family, it will go back to the mainframe job with the error message. So they will see the error messages on the on the job that they run on the mainframe. Okay.
+
+If If if something happens, our requirement to them will be yeah. Because they will come to know through an email or something like that. Isn't it? Can we have a notification that the job related to AWS Direct Connect has failed? Because it that's not under our control.
+
+Being the owner of, providing data, like, to our downstream people, That's a good thing to know that, okay, you know, like, the job has been. Am I right? Yes. We're working that perspective. It's, I think, there is some sort of email inbox that configured and, we need to, onboard the people who actually needs that notification set, which is, which was the talk yesterday.
+
+So, we should be giving that, email box and then configure it, and then they can send the notifications, our main super I mean, Vivek. So that was the point yesterday. And, one more thing is on this aspect is, the Direct Connect, the EDE transfer or the EDE transfer family, how the intake form works, and, what exactly, the SSH how the SSH or what keys will be, public and private and how it has been got handled and, how the data is actually transferred from ED transfer family to our landing bucket. So high level, some theory and then, architecture diagram that how it actually happened. We can actually create that, in our web page as well if it is.
+
+Because, see, any person who joins this team Yeah. Needs to know about these components. Isn't it? Yeah. Yeah.
+
+And and, you know, like, I'll tell you one one thing. The best way to know anything is to write important things Yeah. Which are really needed to implement. Okay? And the, best way to confuse a person is throwing a 200 page document on them saying that, okay.
+
+Figure it out. What do we like, what are we trying to do over here? We are trying to make life easier. And for making the life easier so that another person does not have to go through a lot, we just have to provide them with these other list of information that are going to be really, very good for you to understand, execute, implement, as well as do your work. Does it make sense?
+
+Yes. Absolutely. We will. And now coming to e d e transfer family. I think see, you know, like, group session.
+
+You know, like, if if we need someone who can come and, you know, like, Alex can be 1 or something like that, we can have a session, so that everyone understands it very well because they are still in a part of doing it. Our POCs are being conducted already. You know, like, we know that. Same thing. You know, like, it's it's, you know, like, do we have to rerun, from the point of failure to avoid duplication?
+
+How does it really going to work? We need to know from them so that for future, if something like that happens, we should have a strategy to deal with it. Do we know of anything that, how they are going to work with us? So you are asking about how the ED transfer I mean, the ED conversion engine or the transfer family internally works? Maybe Not internally.
+
+So let's say you pick up the load from here. Okay. And now you're trying to move the data to landing bucket. Yeah. It fits, let's say.
+
+It ran half the way and it failed. Okay. Is it that I need to rerun the job from here again and delete it over here? Or, you know, like, the point it failed, the way ED task family is going to pick up the same data, but it will start from the point it failed and then load it inside the landing bucket. Okay.
+
+Okay. Yeah. Sure. So these details will, how it actually got configured inside the transfer family, in terms of how they have been handling that one, we need to know and then, yeah, we'll, we'll have some connect with them. It it has different configuration settings.
+
+We make it it's something like if we need the copy or if we need to replace that one and if they are restoring that, the copy or trying to copy from the beginning and getting that things done. But, yeah, we'll get the details on that. Idea over here is Yeah. Not exactly Mhmm. How it works.
+
+Figure that out. And what are the complications that can happen? Because, see, if if you are getting duplicate data and landing bucket, we have to deal with that. Am I right? And if we are not getting the duplicates and if we are getting the exact data, that's a very different scenario.
+
+So we we need to really understand how it's going to really work. Okay? So then landing bucket, and I think that was something that was being discussed, you know, like strategy to store data as folders. What are going to be our retention requirements? How many months are we going to keep this particular data in landing bucket?
+
+Data format for storage. Even though we all know it, let write it down. Identify, you know, like, the data queries for data analysis to perform. That data has reached in correct format and expected. Also, there will be a validation between this and whatever the data that comes from will fail.
+
+Okay? How do we validate that? Strategy to have the data in landing buckets in case our next job fails. So what our next job means from landing to raw. Okay?
+
+So there is another next step that is going to happen after this. So we need to understand that too. That from EDE conversion, like that, component that we are going to have, how is it really going to work? And then do we have to rerun from the point of failures to avoid duplication? So same thing that we are trying to do for EDE transfer family.
+
+Same question will be for the EDE conversions. Does it make sense? Yeah. I think we need to handle for a lot of some how we handle failures. Yeah.
+
+Yeah. And then for each of these things, you know, notifications, you know, or type of things that we would have to think about, like, for now, like, over here, or rather. So I mean, you just explained about the ED transfer family and, you know, like, for the lending, bucket that the errors will be on the JCL side. But then after this, you know, like, I hope the AD conversion and how their notifications and errors are being sent. You know, like, we would have to think about those 2.
+
+But, yeah, like, that's sorry. I was gonna so that was the one that I think that the email box was, Alex was calling about, and I forwarded an email from, Sable that I think they wanna add that as part of the validation process too. Okay. That email notification. Oh, so okay.
+
+We will get that, isn't it? Or we have to create a mailbox. So it's either we create our our team creates or I don't know if I think single Spanish to also for the program team to create it. So I don't know if we can use that, include our, team in that mailbox or we create our own. And then I was yeah.
+
+I just saw that too because I know we were gonna do one. But if if the if they create it, I think there's that auto forward rule. But do we wanna create one just specific to, stuff that happens for us or otherwise, are we gonna end up getting other notifications that don't or do we want to get other notifications? Because if they if Sybil's team creates it, my understanding is is then that'll be for the whole for the whole project, right, not just for our services? No, Tina.
+
+I think, maybe the email box might be a centralized one, which, if there is something happens in a JCL site alone, that needs to be get configured, and needs to be notified for, all the team members. It's a program team, ILM, us, and, the other team members who is actually need, the PMR Wizards team. Right? They are the team who is actually handling the errors if there is something. And, so these three teams so who is the members that is actually required and, getting the error is the best thing.
+
+But what is the thing is, who is actually going to create this, the centralized email box, so that all the team members can get added to that? So we need But I Yeah. Yeah. I so that's my question is this Yeah. Do we do we do we need to know about other teams' failures, or do we want one set up for ourselves so that we can be able to take action on on our failures?
+
+That that these failures is actually comes in a, JCL, and while it is transferred and while it is, converting to the, landing to rock. So the JCL part, we should know at least that, what has happened and, what is actually the hack taken. And EDE, also, we need to get the information that while the conversion of what exactly got failed and, the notification on the terms as well. So we need both the things just to, keep on us, in the low key fan. Not wrong.
+
+So Yeah. You're right. Yeah. So so, Tina, to answer your question in detail and adding to what, Sayed is saying, like, we have these systems, IMS DB 2, JCL runs it, you know, like and even though we do not own this part, probably, you know, like, we may not need that type of a failure. But when they move the data using AWS Connect, ED, transfer family, or landing bucket, these are going to be owned by us.
+
+So anything that happens in these components, you know, like, we need to be aware of it because we are responsible for working along with these partners and making it work. Does it make sense? Yes. Yeah. Okay.
+
+Okay. So the Mhmm. Please go ahead. Yeah. I was gonna add something.
+
+So, I mean, we can be part of that, but I think we also need just for our team because, like, the Dynatrace alerts right now, I haven't configured where individual email. But because it doesn't take the internal, you know, DL. Yes. So but I think for things like that, so that's easier. We can just add people to that email bucket.
+
+Right? So I think we need one as a team as well. Okay. That was what my question was is I know that we were gonna create one, but then I saw that, Sybil had asked Ingrid to do it. So, okay.
+
+I'll connect with her because it sounds like she'll probably take one from the full end to end and then we can create one specific to our service. Mhmm. You do that right now. So k. Now coming to EDE conversion.
+
+Okay. What is EDE conversion? Definitely, we need to all know. Okay? How is it configured for ILM product?
+
+We definitely need a group session so that we we are aware of how it really works. POCs and type of technology things are being done right now. What specific conversion and partitioning requirements are being done as of today? Because what I feel is once we start getting data and blending buckets and we start doing our data analysis, probably we might think that if something can be added or something that needs to be done so that we can change the partition I'm I'm just coming out of the box. Because, see, we are not going to be just an order taking people who started initially and not changing our things accordingly.
+
+There might be some changes. That's what I expect as we try to mature our system. So this is where, you know, like, knowing all of these properly written is definitely needed. You know? And then partner in case of any failures.
+
+Same thing is going to happen if we are moving to raw bucket. Do we have to rerun from the point of failure? Or, you know, like, the whole job will be run? What are the nature of things that we are expecting from EDA conversion? We definitely need to know.
+
+Okay? Any questions? And these are the things that I have thought of. Probably you might come to know something else. So having this discussion, you know, like, please add your part of the world too.
+
+Okay? And then raw bucket, you know, like, strategy to store datasets as folders. So what is the folder strategy? Because probably your landing bucket folder and this particular buckets folder may not remain the same. Okay?
+
+We need to know that. So the main important thing yeah. Please go ahead. Oh, sorry. Vivek, so the folder is, it's a kind of, like, partitioning are we talking about or, just how it actually landed?
+
+Messing it up because I'll see what diagram will need. Because I made changes over here, I'll see what to do. K. Now requirements considering business metrics to query and deletion, these are going to be very important for our. Okay?
+
+And I think one more which I should say is, understanding parent users and their queries. Okay? Because the the users on the system, they exactly know what they are really looking for, and then we can formulate our own strategy to make it much better. But, definitely, to start with the base line of our current users and their queries, that is going to ease out, you know, like a lot many things for us. Okay?
+
+Then glacier, which classes to consider based on, say, your research yesterday? These requirements that are at the top, they are going to help you to understand how to implement those particular strategies. And that's where the retention requirements are going to come into picture. Data format for state stage storage definitely will be parquet, but then identifying data queries for data analysis. Here, your data analysis is going to be different than the landing bucket.
+
+Okay? At the same time, some will be correlated, but at the same, the nature of analysis will differ between the raw bucket and the landing bucket. Okay? That is something that we have to really think creatively. What are the type of queries that are going to play a very important role for both of these buckets?
+
+Because landing bucket is more about, okay, whether I got data from mainframe or not, format things, this and that. But then, data quality and all those things will start becoming very predominant in our raw bucket because that's where you will see that as a particular team that is going to provide data to consumers, these things do that very nicely. Okay? Counts between raw bucket and lending bucket should be seen. You know, like those are the type of accuracies that we will have to look into so that we can see that the numbers are same, same, schemas, and type of things.
+
+They may change because of moving from landing to raw, but what should we really do, as a part of folder strategy? That will also mean a lot. Any questions? Yeah. Sure, Vivek.
+
+We have the data validation. So, things, that we can discuss on Monday, and we can also, take it from there, what we can actually do. So yep. Okay. It was k.
+
+If the job is feed, you do not know what you have to do. Okay? We'll have to see and work along with ED conversion. Knowing ED conversion, we'll have to fix what we can do. Okay?
+
+So this is something that please talk to them. Have a meeting so that you understand it really well. Okay? No. This is something that we have to really think from MMR perspective.
+
+The whole focus then that I had was, you know, like, we are approaching our MMR one. And what is the nature of work that we can do? Majority of it is a priority. Okay? Now definitely the Athena and Raw bucket part, you know, like, I had discussions with Sybil also, and I did share with you, the email conversation that I had with her related to Doctor.
+
+Even the glacier part. Okay? And I know that in the meeting invite, I did mention about February as the end date to do all the type of researches related to glacier. You know? I can understand the amount of work that will pop up because of this particular discussion, clarifying, you know, like and getting all of this in place along with our MMR.
+
+But there are various things that have popped up because of using Glacier. Like the catalog thing that was stopped by Arvin. So what I'm gonna do right now is hand it over to, Arvin so that he can talk from the catalog perspective what will be needed. And why are we having these discussions? So that we can fix our priorities vague?
+
+It? Do you guys think that I'm going vague? Or anything that you think that doesn't sync with you, please let me know. Okay. Another thing which I have thought about engagement.
+
+While we are going to work on these stories, one of the discussion that I want to have with all of you is, hey, Tina. Do you remember, Vishal along with, Ankit Mhmm. Sonia and, Norman and all of those folks used to have combined sessions this morning so that they can work on the story. So someone will be guiding or rather having a hand in doing things and then other people researching so that they can make it quicker and learn together. I'm thinking to go that route specifically right now because of the skill gap that we all have.
+
+But at the same time, we can learn and execute it together faster. That's what my understanding is. What do you think about it, Tina? Yeah. I I mean, I know Arvin and Pat and, Syed, you guys usually meet at 10.
+
+Right? Is it it's is it more just for review or do you guys actually do, collaboration collaborative work? No. It's not about code review alone. If there is anything that needs to be discussed on, as a group and that needs to be get developed or if there is any questions on everything we will be discussing on that, and then we'll be implementing those.
+
+You know, it's not only about the review thing. But Okay. I Yeah. Okay. I was just gonna say, I just thought I was thinking that they were doing Vivek, but are you are you wanting you that to be more of, like, working collaboratively on, like, specific stories?
+
+Or I understand, what Vivek, said that, how to make this, make this work faster so that, that each individual has, the work to pick up and collaborate each other and, complete the work, the things to do. So we, we will be engaging for sure and taking all the points. What I see in my perspective on the things is, till the raw bucket, we need all the details, not, into the most of integral part, but at least how it actually works and what exactly the things that we are doing till the EDE conversion. And once it is comes to the raw bucket, what exactly the things that we need to do for, our development purpose. So, the retention and glacier storage and everything.
+
+So till this, EDE, we need to do the documentation and, show the details what exactly we are doing. And, we will be having the collaboration session on that, and, we'll try to pick up, each individual and then, do the job. And, it's not like 1, it's not like only one can do that. And if there is anything that needs to get configured and meeting with the exam, the people, example for the j for the PMR and for the ED conversion. We'll be having, the quick connects with them and then get the details and document it.
+
+And then for the raw bucket, we will be discussing all the details of, the storage classes and retention policies. So from there, we will be go go ahead. We'll take it, we wait for sure. So So the way he just mentioned, you know, like, talking to right people Yeah. Getting in sync, having a collaborative session.
+
+Yeah. Yeah. Then RawBucket needs Glacier. Correct. Yeah.
+
+What are the nature of things that you guys all can think about Yeah. Listed items? You know, like which we are going to discuss right now. You know, like, like the Doctor thing, I had discussions with Sybil. Mhmm.
+
+Probably May around May time frame is the right time to talk about that. Yeah. Okay? Mhmm. So we do not need Doctor for right now because our focus is MMR.
+
+Yeah. Now the part that I get worried about is, you know, like, okay, we are implementing Glacier. Okay? That is something that we all have to research, sit together, work work it out along with all other these details. You know?
+
+But at the same time, if you apply configurations, how as a team taking small, small things, you know, like, I mean, do like so let's say we have an s three bucket in, US east 1 and we take an s three bucket in US west 2. Okay? And based on that, we load a certain particular data in east 1, apply glacier policy, let's say, for a couple of days, whatever it is. And then we do an object replication in west 2. Is there a way to check that whatever the configuration that we did on the east one side has been replicated on other side.
+
+This is how it works. If we have been talking about the Doctor, Vivek, there is one, thing called cross region replication that we need to Yes. Replication. So what it, does is whenever, we it is a kind of event cycle that we need to configure on s three bucket, what where we need the replication. So, when whenever file has been got dropped, a new file has been got dropped, it will be get immediately get replicated in the best two regions of I understand that, Sayed from the standard s three perspective.
+
+Yeah. I'm talking about from the Glacier's perspective. Okay. Okay. So the glacier's So the thing is yeah.
+
+Because, see, now the data is no more in s 3. It's in s 3 as well as in glacier. Okay? Okay. That's how it will be.
+
+Isn't it? And now if I'm doing an object replication, is it that the configuration that you have of the original bucket which has standard as well as, you know, like an archival type of a thing being replicated the same way? Or do you have to go to a Doctor region and apply those, glacier things over there? Yeah. We wait for the point?
+
+Yeah. I got the point. So in both the cases, if the buckets will be 2 different things and the the life cycle configuration will be, set up in both, areas. So if we have the deep, archive and, if we have been set up in a parent bucket, then it needs to be get set up the same configuration in, in the Doctor bucket as well. So it means it has to be done manually?
+
+No. It's a life cycle configuration that we applied for the, east bucket. We need to apply the same bucket rule for the west bucket as well. Yeah. So how will you do that?
+
+Because object replication Yeah. May not do that. I do not know the functionality of object replication. It like the way we were hearing from Mike, isn't it, about that if if you have s three tables, you know, the catalog will be missing. Isn't it?
+
+Yeah. Yeah. Yeah. And in that particular situation, in the Doctor area. And therefore, you have to do a lot many things manually on the other side, and which is not a right way to automate the Doctor perspective.
+
+Correct. Doctor. Rizzo in Vivek. Yeah. Yeah.
+
+So see, the same thing I'm thinking over here. So so Doctor is definitely a next step. I'm not don't go into that for right now. Okay. Objective is glacier, you know, to start with.
+
+In the month of May, you know, like, we'll have to start thinking about Doctor. Intricacies of Doctor and all that. So the first thing is, you know, like applying all of this, seeing that the data is reaching your raw bucket, are we able to apply? Now, to understand the requirements, you know, like for, deletion and all that Mhmm. There is a lot there.
+
+What does it mean by a whole dollar? How will you apply that? How will you identify an effective date of the debt policy? When are you going to delete it? I need those requirements clearly written and understood.
+
+So have to yeah. I'm sorry. If you mix with the hold order and everything, right, it's a kind of, even the program team, you're not sure what exactly the things where and how the things is coming across. But for this point of time, we need that data. Right?
+
+We need the document how the whole orders and it's actually from MMR to, is that implementing, Vivek? Is that correct? No. No. So they they will see till all the MMRs, we are just going to move the data.
+
+Okay? Okay. All this data for all the MMRs, the way I have understood is going to be deleted. Okay? And then the real implementation will start after MMR 3.
+
+Okay. What are we trying to achieve with all of this? Like the way you just mentioned, that old order requirements are not that clear for right now. Okay? So after you gather the information and if you figure out that, okay, this is not the exact thing because see, you cannot apply configuration to data without having an understanding about it.
+
+You need to know about the data in and out before you do that. Start exploring the nature of requirements that we have at a high level, and then start going into examples. Create an Excel sheet and the nature of data that you are going to receive after MMR 1 or whatever it is or before that and understand when to move to the next layer. See, that's where our our our job is once the data comes to standard, how will you apply the various classes that you showed to me? Are you getting my point?
+
+Yeah. Yeah. Sure. Sure, Vivek. Got the point.
+
+Yeah. So if I want to move it to the next class, until and unless you understand the business requirement for that, you cannot apply it. So for all of us over here, knowing those business requirements is very critical, especially if you are owning the data. So therefore, requirements is a key. Wherever I have written requirements, like, dig it very well.
+
+It's very important because we cannot delete the data unnecessarily. And, Tina, I'll request you to navigate while especially working on the requirements part Mhmm. So that, you know, like, everyone understands the requirements very well right from start to end. So I think I get what you're saying. So you mean well, first of all, thanks for doing this brain dump.
+
+This will definitely help obviously with our documentation, but also, being able to identify any gaps or, being able to, new work. So I I think from what I understand is that, we can start creating, some collab sessions and be able to go through this and and have some dedicated, discussions around this as a as a team and being and working to, documenting this properly. Is that what everybody else is on the same page? So data 1 is documentation and making sure the nature of work that needs to be done for each line item. Yeah.
+
+Okay. Yep. Sounds like everybody's on the same page. We can probably start probably next Monday. I mean, I I can take this as my highest priority, and, I know I can rearrange some other stuff.
+
+But I don't wanna interfere with what you guys have planned, but I know we have that working session next Tuesday. But, if you guys are free, we could start cranking it out. I don't know. Can you guys send me your collab session? I think it's you said it starts at 10, and we can maybe repurpose that to Yeah.
+
+Sure. Exactly. We'll, we'll just no. Of course. We'll do that.
+
+Okay. These discussions because, see, today is the day. You know? If I have slept at 3 o'clock, I need to make it work right now. I didn't sleep as well.
+
+That's not good because yeah. Oh, oh, oh. Okay. Yeah. Like, I was, like, literally, you know, how to make this work, what are the nature of things to make it successful at least from the start point and, thinking through.
+
+And definitely, you guys might be knowing more that can be added. But I wanted to have this initial chance. So we talked about engagement. We talked about the nature of work that needs to be done. Priority and time lines.
+
+You all know how the product is moving. Okay? To me, everything is priority. But sort it out, what is the dependency or type of things based on these line items or type of things so that you can manage your project very well. Okay?
+
+And then, I haven't written anything about Athena, but, you know, like, you might have to undergo certainly some queries using your raw bucket. Okay? So that is something that you will have to sort out, you know, like, how are we achieving that. We can write that down, but now let me hand it over to, Arvin. And if you guys have anything, you can also take the control.
+
+You know, like, it's not about, but, Arvin, I'm I'm going to stop sharing. And please go ahead and talk about those catalogs and type of things that you were talking about, and we can list them in this document also. So thank you. I'm glad I prepared something. But, anyway so when I talked to you yesterday, I thought may maybe we could have, like, all of, like, process flow.
+
+Like, this is high level, so it doesn't have, like, the, you know, like, just like the topology, but more of a high level how, like, how are how how the whole island process I see is going. And it doesn't have the, you know, like I said, the technical, or the, yeah, the the technical solution. It just sort of a high level. We know we're gonna use Athena. We know we're gonna use the, transfer family and the EDU conversion engine.
+
+And so it's sort of like at the like I said, the process flow would start from, you know, the transfer family sending the data into the landing bucket. And I sort of put in a process where, like, in here, what are we gonna be responsible for? Right? What work we need to do? So from landing to in the conversion engine and getting the data to raw, we need to have, like, a trigger.
+
+We need a trigger trigger mechanism to trigger the conversion engine. And so that part, I think, we'll be responsible for. And then you talk about data validation, and this is what we're talking about. We need to validate the data between raw and landing. And then in here, I just put in, like, this part could be replicated on another AWS region just for disaster recovery.
+
+And I have here the raw bucket and the blazer separated out, but, like, you know, it could be based on the life cycle rule. It could actually mean the the same bucket here. But what concerns me when we talk about because I think this part is not mentioned. Like, because once it's in Glacier, when we query that we wanna query that data through Athena, we actually have to restore that data into a temporary storage so that it can be queried through Athena. But for for that restore objects to run, we need to have a list of objects to restore.
+
+And so that's why I had the question. Sorry. Yeah. Sorry to intervene. So what does it mean by so from Glacier, you said list list of objects to restore.
+
+Okay. So to bring bring back to s 3, standard? Yes. So if they're in Glacier so let's say Illinois data is in Glacier. You cannot well, the one that I sent, like but it has to be the data catalog has to be in Hive.
+
+Right? So that we don't have well, but they still have to restore it. Because so from Glacier, you still have to bring that out so that it can be queried. And with that, you need the list of objects that you have that you want to restore. So there are different other option as well, if you do not want to restore and quickly query the data, but it's a kind of discussion that we can have, Armin.
+
+But if you do not want to restore, there is an instant retrieval is there. It's just a cost costing that needs to be decided on. Yeah. So I'm talking about here, we're in deep archive. Right?
+
+Because that's the cheapest. Because I think when we'll that's why I asked you to look yesterday Mhmm. Between the instant retrieval. Yeah. That's why we look at it.
+
+It's point 004, and the deep archive is point 00099. Correct. Yeah. The cost is much higher. Yeah.
+
+I mean, if we're gonna do go so this is I guess, what we wanna do is proof of concept if we're gonna do that, right, and compare it with the instant retrieval because we had to sell it to the program team and to the customer that, you know, it it is easier for us if we don't go to deep archive because we don't have to do the restore. But, again, the storage cost would be much higher. Right? Yeah. So what I'm talking about here so it could be a POC.
+
+If we go to Glacier, how would Athena, right, be able to access that data? In both the cases. In both the cases, we are talking POC on, instant retrieval and deep archive or, only in one perspective? We can probably do both to compare costs. Right?
+
+Okay. But I think that is overlook work. And the other problem too is you have to restore the objects, and you have to provide a list. Right? So how does a user let's say, I wanna query Indiana, but only this table.
+
+How do we how would they specify that? We don't have a UI. Right? How would they know how or or would I restore job restore everything under Indiana? Then that would even be more costly.
+
+Right? No. No. I'm not getting that. Give me an example, Arlene.
+
+So okay. So let's so let's say so Indiana. They wanna so in under Indiana, let's say you have 2 databases. Database 2 databases, database 1 and database 2. Mhmm.
+
+And they're both in Deepclature. Right? Mhmm. But if I'm the customer, I I would say, I just wanna query database 1. Okay.
+
+So you only have to restore database 1. Right? Yeah. But how would we know if we don't have a UI? Our UI is just Athena.
+
+So that's where I think the folder strategy is going to play a very important role to my understanding that we can go to a specific folder if we derive data from those folders only even though they are from same states but with a different objective. But how can they specify, like, that list? How how are they gonna provide that list? They have to upload it? Mhmm.
+
+Right? Because they can say, oh, I wanna restore this database for Indiana. And what is the purpose of restoring? Because if it's in if it's in deep glacier, we cannot query it. Oh, okay.
+
+Okay. So if it's in we're talking about deep glacier. So this is the cheapest. Right? Mhmm.
+
+So you have to restore that before you can query it in a data. And so that's why I have this restore jobs. So we need to have a restore, restore object process, and it will have to put that into I don't know if it'll be another bucket or it could be in raw, something like that. And then we can that's the only time you can query if it has been restored from. And this restore objects is only valid for certain days.
+
+Right, Sayed? Yeah. Correct. Yeah. 25 days, for example, 50 days.
+
+So for example, Arvind, this is restore objects is a kind of dynamic thing. So, the user might come at, one fine day and then, thought of re thought of getting a query to one of the objects, for example, Indiana and Illinois and whatever the data that we have. So, in technical perspective, if we have a deep archive and, and if we want to apply to restore the things, then we can just directly go there and then, depending upon the configurations that we set, we can actually get restore the data that can be automated through our, Terraform and some other scripts. But the only challenge here is, how, who is, for example, if we don't know who is, what data that they need, that is actually a kind of, a question that we might need to ask is, if it is a UI, UI might not come into the picture. But, if there is a Athena query that we are querying and, if we want to query itself, it needs to be get restored.
+
+Until and unless it is restored, it it won't be get queried. So before that itself, we need to have some, mechanism or, kind of a notification where a user needs this object needs to be get restored, then we can actually, automate it through a lambda function to trigger this s three job to restore a particular object to a standard bucket. So that can be done, but, yeah, there is an Yeah. That's why I have this note in here. Right?
+
+Yeah. How how does the user specify the objects to restore? Yeah. If we go to deep archive because we don't have a UI thing. We're not gonna give them a CLI access to to list the full the objects in the s three bucket.
+
+Right? Yeah. So I don't know if the cost justifies it into just moving instead of going into to deep archive. We just go to that other to the higher cost Yeah. Place, sir.
+
+Instant retrieval. So I think, Arvin, that's a great point that you are bringing it up. This is where I think the business metrics document that was being shown by Jennifer may play an important role where we can say that because, see, this data is going to lie there for 25 years. Am I right? So At least.
+
+Let's say at least. So so the thing is, let's say for 5 years, you can put it into the intelligent tier. And after that, go to Deepak app because there will be no queries that you will see for that particular data. But if if we do that though, then you're you're basically after 5 years, you're telling them you cannot query because we don't have that capability. Yeah.
+
+But at the same time, we can create this functionality only, you know, like, because these calls will be very, very minimal. That's what I see. So, like, these will be most infrequent after a certain amount of time. So we can have this discussion with even program team so that we can take, you know, like a decision which is going to be probably the most one where we are eradicating this, but we will also have a solution. Does it make sense?
+
+Yeah. But my point, though, is even if you have, like, you know, move move it move move the data into the glacier after 5 years, we still need to have a mechanism to be able to query that in case. Agree. Agree. Agree.
+
+Right? I agree. I agree with that. I still agree with that. Yeah.
+
+So if we're gonna to me, it's like, if we're gonna give them that capability, we would save more if, like, after a day or so, let's move everything into the after a day or so, just move everything into the arc into the deep dish if it's really, like you know, if you are just restoring data once a year, things like that. Agreed. Yeah. So, like, one is to take a proper decision about when to move to deep archive considering the nature of queries that we have been observing. And second will be, you know, like, even though if it has gone to deep archive, we definitely need a solution still because things can go haywire.
+
+And that is not going to be a lot to ask, actually, honestly. I think that will be good. At least to start with, definitely. And if there are any upcoming changes or type of things that happens in future because of the change in technology or type of things, we can keep an eye on that. But, yeah, absolutely.
+
+It's a great point. Please share this document with me too. Yeah. I'm gonna put it in our share point. But this is, like, my idea of, like, the bigger picture or yeah.
+
+Sort of what do we need to work on. Right? It is. It is. And what does this data catalog do?
+
+So with the data catalog, it's sort of like you create a database. So when you query it, you specify them. Like, you you already have the table names and everything set up if you have that data catalog. But we can also query it using, like, act actually, the parquet files, but you have to assign like, okay. I will let's say I have 51.
+
+Right? That file 1, I will call it, you know, table 1. Something like that. So you have so you can access those objects by reading each of the parquet and assigning a table name for each of the object that you read. So it's not organized, but it requires more, say, user intervention if we do that.
+
+Like, can I show you an example? Yeah. See, because so I have these stored objects as a bucket. Okay? Now I have already connected it to Athena, and I can run my thread.
+
+Okay? So at that that process, I can understand excess objects in par k of 1. Okay? Which is good. But please please go back to your picture.
+
+So let's say we're accessing the objects in tar k. So this is an example of what we do now in in the Athena notebook using Python. So and forget about the because this one is an an old, s forget about the because this one is an an old, s three bucket. But you're basically saying I'm loading it into a data frame. So this is the command.
+
+So every data under that folder with the aster with the filename of parquet, I can refer that as lp4. And then for me to use that in my SQL, I would have to use some of the, HighSpark commands. So here, I'm gonna name that data frame, which responds to that file. I will call that as lp 400. So when I go into my SQL, say, I can I have my I have the 401 here?
+
+So for me to run my query, this is how it would look like. From the, you know, the select key, it would this will be your SQL statement. And sorry. I have l v 401 here, but you can replace that because if you look at 400. Okay.
+
+400 is the same. You know? 401. So that's replaceable. But this is how they would use those commands so that they can query the data using SQL.
+
+Now with this one, it has more, work or whoever is gonna, analyze the table because this one is saying this So in here, I'm just using 4 tables. Right? But what if I wanted to join, like, more tables? Then these commands here would expand to the, you know, whatever, how many tables they want to query. Same as this one, before they can run their SQL, to actually run their query.
+
+Right? But if it's already catalog, I don't have to execute all of this command. Right? Because, with the catalog, like in Glue, I can have this table already assigned to this parquet file. So if it's if you're running Athena SQL, I can just run, like, my command.
+
+You know, as long as this, Athena is connected to that database, then it will know that table already. There's no more set. If it's already cataloged, there's no, manual setup that the user needs to do. That makes sense. So that's why I have the two options here.
+
+Do you wanna pursue as the data is catalog so that it will be in a database, and then we can have, we still have to have a manual that says or, you know, a user guide that says these are the table names, or maybe that's correspond to the IMS. Right? Because we're moving everything from the IMS table into AWS. So we need to have something like this r, like the equivalent. If you wanna query this data, this is the equivalent IMS, data that you can query on AWS.
+
+And so I put in here one of the things we have to do also is, like, a user guide or tutorial how to use Athena. So something like that for our user. Mhmm. I I see where you're going with this. It's just like a cache, isn't it, in, API systems?
+
+Like, I do my query because I restore my objects, and I'm done. The data will automatically go to deep archive again. Your, like, complete processes end to end. Now another is you pull out the data. You did that manually, but now you also have a data catalog system so that eventually the user, if they want, again, to query the same table, okay, what they were looking into, it's going to be easy for them for future rather than going through this particular cycle or turn on.
+
+Right? So in that particular situation but the only thing over here is providing a catalog because, see, other see, that's where, you know, like, how people are querying the data as of today and understanding is very important. The only thing will be if it is very infrequent and if it is repetitive after 6, 8 months, do we need a data catalog in that situation? You know? That's the only question that I will have.
+
+You know? It's it's a good functionality, honestly, but for a repetitive purpose. Because in that scenario, people with all the, like, asks for different states or type of things, they will all have a catalog, and we will have a lot of catalogs to manage and maintain. Just providing them a single thing, it costs you know? We, write the pros and cons for those actually, side by side, Arvin along with, our team.
+
+I think that we can definitely look into it once, we understand our business users very well. But, yeah, it's it's a it's a great finding. And and also, it's like if you add so if let's say we have that database. Right? Database 1.
+
+But we're gonna keep adding data to it. How does that data catalog, like, work? Does it automatically add that those data into the catalog that points to that drawer placement? Right? So those things.
+
+Yeah. Because it's it's always gonna be incremental. Right? Because let's say, the audio 800, we're just gonna have today, we're gonna have Illinois. You know, next month, we're gonna have Indiana.
+
+So how does that incremental, data going into the table? How does data catalog works? I agree. Yeah. And if we add that because, see, on the right hand side, what you have, just restore the objects.
+
+You are done with a query. We move out. Okay? And on the left hand side, there will be a lot of work there. So probably to start with, we can think about the right hand side one.
+
+And then observing that, okay, there is a need of a change for our users, we can think about going that route of data catalog and also to investigate, you know, like, when the data is being appended. That's what we are thinking about right now, which you just can't read and how it really works. So there will be a need there to experiment it first before we apply that functionality. So, Arvin, is this the same functionality? It's something like the data catalog is, the glue one, that we had represented to the, program team as well that we thought of implementing from MMR too.
+
+Is that the same thing? Yeah. We're talking about glue or whatever. Right? We have options.
+
+Okay. So glue is one of them. Yes. Because I I think with Glue, we keep the data in the in the bucket. It's it just creates, like, a a pointer, but then the whole data is saved into that into that bucket.
+
+Right? Mhmm. So that's also kind of the consideration. What what do we use? Right?
+
+So so that we don't get replicated data. Okay. We don't replicate the data. Okay. Okay.
+
+Got it. So yeah. And if I miss anything, so like like I said, I'm gonna put it in in our SharePoint. Right? But so if I miss anything or anything, kid, this is, a a document for the team.
+
+I just I just shared the link, actually once you do that. And then, yeah, like, thank you very much for sharing. So, is it okay if I take the control, Yeah. Okay. So, yeah, what I'm gonna do is I'm gonna share this document with all of you.
+
+Okay? And I'll tell you now so that if you remember the sheet that I did, you know, in the past, which I shared with you, it was on the same lines that I discussed today. What are the pipeline elements? Elements? So, like, IMS database, whatever.
+
+You know? And then POCs, where are we in those? Team and manager responsible. Success. Any ADD or ADS is needed.
+
+Dependency, so that we can sort out the work for us. This was sent last year, D. You know, schema mismatch analysis between IMS and DB to extract. You know? We had that that time click replicate, which is now not on the table.
+
+But this Excel sheet was exactly on the same lines that I thought that we can move forward with, but whatever you want to.
