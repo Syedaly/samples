@@ -1,13 +1,144 @@
-from pyspark.sql import SparkSession
+data "aws_iam_policy_document" "sf-ec2-assume-role-policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
 
-spark = SparkSession.builder.appName("DataValidation").getOrCreate()
+# Actions included in the policy
+data "aws_iam_policy_document" "sf-als-ilm-validation-policy" {
+  statement {
+    sid    = "AllowAllActions"
+    effect = "Allow"
+    actions = [
+      "s3:GetObjectVersionTagging",
+      "s3:GetObjectAcl",
+      "s3:GetBucketObjectLockConfiguration",
+      "ec2:StartInstances",
+      "ec2:DescribeInstances",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "s3:GetObjectVersionAcl",
+      "s3:ListObjects",
+      "s3:PutObject",
+      "s3:PutObjectTagging",
+      "s3:HeadBucket",
+      "s3:DeleteObject",
+      "s3:DeleteObjectTagging",
+      "s3:GetBucketPolicyStatus",
+      "s3:GetObjectRetention",
+      "s3:GetBucketWebsite",
+      "s3:ListJobs",
+      "ec2:RunInstances",
+      "s3:DeleteObjectVersionTagging",
+      "s3:GetObjectLegalHold",
+      "s3:GetBucketNotification",
+      "ec2:StopInstances",
+      "s3:GetReplicationConfiguration",
+      "glue:CreateCrawler",
+      "glue:TagResource",
+      "s3:ListMultipartUploadParts",
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DescribeJob",
+      "s3:GetAnalyticsConfiguration",
+      "s3:GetObjectVersionForReplication",
+      "s3:CreateJob",
+      "s3:GetLifecycleConfiguration",
+      "s3:GetAccessPoint",
+      "s3:GetInventoryConfiguration",
+      "s3:GetBucketTagging",
+      "s3:GetBucketLogging",
+      "s3:ListBucketVersions",
+      "s3:ReplicateTags",
+      "s3:ListBucket",
+      "s3:GetAccelerateConfiguration",
+      "s3:GetBucketPolicy",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetObjectVersionTorrent",
+      "sns:Publish",
+      "sns:*",
+      "s3:PutBucketTagging",
+      "s3:GetBucketRequestPayment",
+      "s3:GetAccessPointPolicyStatus",
+      "s3:GetObjectTagging",
+      "s3:GetMetricsConfiguration",
+      "s3:PutObjectAcl",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:ListBucketMultipartUploads",
+      "ec2:TerminateInstances",
+      "s3:ListAccessPoints",
+      "s3:PutObjectVersionTagging",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketAcl",
+      "s3:GetObjectTorrent",
+      "s3:GetAccountPublicAccessBlock",
+      "s3:ListAllMyBuckets",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLocation",
+      "s3:GetAccessPointPolicy",
+      "s3:GetObjectVersion"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    effect    = "Allow"
+    actions   = ["logs:CreateLogGroup"]
+    resources = ["arn:aws:logs:${var.default_tags.region}:${var.account_number}:*"]
+  }
+}
 
-parquet_path = "s3://your-bucket/output_data.parquet"
-df_parquet = spark.read.parquet(parquet_path)
+# Creates IAM role and updates the trust relationship
+resource "aws_iam_role" "sf-als-ilm-validation-role" {
+  name                  = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-sf-als-ilm-validation-role"
+  permissions_boundary  = var.login_info.role_pb_arn
+  assume_role_policy    = data.aws_iam_policy_document.sf-ec2-assume-role-policy.json
+  description           = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-als-ilm-validation-role"
+  force_detach_policies = true
 
-# Extract schema information
-parquet_schema = df_parquet.schema
+  tags = merge(
+    var.default_tags,
+    {
+      "Name" = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-als-ilm-validation-role"
+    }
+  )
+}
 
-# Convert to dictionary for easy comparison
-parquet_columns = [field.name for field in parquet_schema]
-parquet_types = [field.dataType.simpleString() for field in parquet_schema]
+# Creates new inline policy
+resource "aws_iam_role_policy" "sf-als-ilm-validation-policy" {
+  name   = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-als-ilm-validation-policy"
+  role   = aws_iam_role.sf-als-ilm-validation-role.name
+  policy = data.aws_iam_policy_document.sf-als-ilm-validation-policy.json
+}
+
+# Creates new iam instance profile
+resource "aws_iam_instance_profile" "sf-als-ilm-validation-profile" {
+  name = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-als-ilm-validation-profile"
+  role = aws_iam_role.sf-als-ilm-validation-role.name
+  tags = merge(
+    var.default_tags,
+    {
+      "Name" = "sf-${var.default_tags.tenant}-${var.default_tags.ou}-als-ilm-validation-profile"
+    }
+  )
+}
+
+# Attach managed policies - kms
+resource "aws_iam_role_policy_attachment" "sf-role-policy-attach1" {
+  policy_arn = "arn:aws:iam::${var.account_number}:policy/sf-kms-access-policy"
+  role       = aws_iam_role.sf-als-ilm-validation-role.name
+}
+
+# Attach managed policies - ssm
+resource "aws_iam_role_policy_attachment" "sf-role-policy-attach2" {
+  policy_arn = "arn:aws:iam::${var.account_number}:policy/sf-ssm-required-policy"
+  role       = aws_iam_role.sf-als-ilm-validation-role.name
+}
+
+# Output ec2-role-name
+output "sf-ec2-role-name" {
+  value = aws_iam_instance_profile.sf-als-ilm-validation-profile.name
+}
