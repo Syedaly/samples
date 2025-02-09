@@ -1,14 +1,19 @@
-def read_metadata(metadata_path):
-    # Read the metadata file, skip the first 2 rows
-    metadata_df = pd.read_csv(metadata_path, skiprows=2, header=None)
-    
-    # Extract only the relevant columns (COL_NAME and DATA_TYPE)
-    metadata_df = metadata_df[[1, 2]]
-    
-    # Rename columns for clarity
-    metadata_df.columns = ["COL_NAME", "DATA_TYPE"]
-    
-    # Convert to a dictionary
-    column_data = dict(zip(metadata_df["COL_NAME"], metadata_df["DATA_TYPE"]))
-    
-    return column_data
+  Mismatch for column DATABASE_NAME: Parquet type is string, Metadata type is CHAR
+  Mismatch for column STATE_CODE: Parquet type is string, Metadata type is CHAR
+  Mismatch for column TERM_DT_YYYY: Parquet type is string, Metadata type is CHAR
+  Mismatch for column TERM_DT_MM: Parquet type is string, Metadata type is CHAR
+  Mismatch for column TERM_DT_DD: Parquet type is string, Metadata type is CHAR
+  Mismatch for column PLCYNO: Parquet type is string, Metadata type is CHAR
+  Mismatch for column SEGMENT_TABLE_NAM: Parquet type is string, Metadata type is CHAR
+  Mismatch for column COPYBOOK_NAME: Parquet type is string, Metadata type is CHAR
+  Mismatch for column POLICYNO: Parquet type is string, Metadata type is CHAR
+  Mismatch for column CAR#: Parquet type is string, Metadata type is CHAR
+  Mismatch for column LOGIC_DLTE_TSTMP: Parquet type is timestamp, Metadata type is TIMESTAMP
+  Mismatch for column MD566_ROW_CNT: Parquet type is smallint, Metadata type is SMALLINT
+  Mismatch for column EAIGG_ROW_CNT: Parquet type is smallint, Metadata type is SMALLINT
+  Mismatch for column CLNT_ID: Parquet type is string, Metadata type is CHAR
+  Mismatch for column ADD_TSTMP: Parquet type is timestamp, Metadata type is TIMESTAMP
+  Mismatch for column ADD_SRC_ID: Parquet type is string, Metadata type is CHAR
+  Mismatch for column UPDT_TSTMP: Parquet type is timestamp, Metadata type is TIMESTAMP
+  Mismatch for column UPDT_SRC_ID: Parquet type is string, Metadata type is CHAR
+  Mismatch for column VALD_DATA_IND: Parquet type is string, Metadata type is CHAR
