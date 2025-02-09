@@ -1,1 +1,21 @@
-Feb  9 19:23:01 ip-10-232-114-225 cloud-init: download failed: s3://sf-pcmngd04-use1-test-autolegacyilm-s3-landing/scripts/s3fs_startup_script.sh to home/ssm-user/validations/scripts/s3fs_startup_script.sh An error occurred (AccessDenied) when calling the GetObject operation: User: arn:aws:sts::756033938671:assumed-role/sf-autolegacyilm-test-sf-als-ilm-validation-role/i-01f4233f0931dce86 is not authorized to perform: kms:Decrypt on resource: arn:aws:kms:us-east-1:756033938671:key/ee9ac746-8bf3-48c5-8d10-c68fdc55b441 because no resource-based policy allows the kms:Decrypt action
+COL_ORDER,COL_NAME,DATA_TYPE,LENGTH,SCALE,DEFINITION
+0,CREATION_SQL,TABLE_SCHEMA,CREATED_ON,CREATED_BY,CREATED_FOR
+1,DATABASE_NAME,CHAR,5,,
+2,STATE_CODE,CHAR,2,,
+3,TERM_DT_YYYY,CHAR,4,,
+4,TERM_DT_MM,CHAR,2,,
+5,TERM_DT_DD,CHAR,2,,
+6,PLCYNO,CHAR,10,,
+7,SEGMENT_TABLE_NAM,CHAR,8,,
+8,COPYBOOK_NAME,CHAR,8,,
+9,POLICYNO,CHAR,10,,
+10,CAR#,CHAR,3,,
+11,LOGIC_DLTE_TSTMP,TIMESTAMP,26,,YYYY-MM-DD-HH.MM.SS.SSSSSS
+12,MD566_ROW_CNT,SMALLINT,,,
+13,EAIGG_ROW_CNT,SMALLINT,,,
+14,CLNT_ID,CHAR,11,,
+15,ADD_TSTMP,TIMESTAMP,26,,YYYY-MM-DD-HH.MM.SS.SSSSSS
+16,ADD_SRC_ID,CHAR,8,,
+17,UPDT_TSTMP,TIMESTAMP,26,,YYYY-MM-DD-HH.MM.SS.SSSSSS
+18,UPDT_SRC_ID,CHAR,8,,
+19,VALD_DATA_IND,CHAR,1,,
