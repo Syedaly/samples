@@ -1,80 +1,19 @@
-import os
-import pandas as pd
-from pyspark.sql import SparkSession
-
-# Initialize Spark session
-spark = SparkSession.builder.appName("DataValidation").getOrCreate()
-
-# Define base paths for metadata and parquet files
-metadata_base_dir = "/var/s3fs/OT800/ETBG"
-parquet_base_dir = "/var/s3fs_t/OT800/ETBG"
-
-# Function to read the metadata and extract column names and data types
-def read_metadata(metadata_path):
-    metadata_df = pd.read_csv(metadata_path, skiprows=2)  # Skipping first 2 lines as per your input
-    column_data = {}
-    
-    # Extract relevant columns from metadata
-    for index, row in metadata_df.iterrows():
-        column_data[row['COL_NAME']] = row['DATA_TYPE']
-    
-    return column_data
-
-# Function to process all directories dynamically
-def process_directories(metadata_base_dir, parquet_base_dir):
-    # Iterate over subdirectories dynamically for metadata files
-    for root, dirs, files in os.walk(metadata_base_dir):
-        # Look for any file ending with .metadata
-        metadata_files = [f for f in files if f.endswith(".metadata")]
-        
-        for metadata_file in metadata_files:
-            metadata_path = os.path.join(root, metadata_file)
-            
-            try:
-                # Read metadata schema
-                metadata_columns = read_metadata(metadata_path)
-
-                # Look for .parquet files in corresponding parquet_base_dir subdirectory
-                relative_dir = os.path.relpath(root, metadata_base_dir)  # Get relative directory path
-                parquet_dir = os.path.join(parquet_base_dir, relative_dir)  # Construct corresponding parquet directory path
-                
-                if os.path.exists(parquet_dir):
-                    parquet_files = [f for f in os.listdir(parquet_dir) if f.endswith(".parquet")]
-                    for parquet_file in parquet_files:
-                        parquet_path = os.path.join(parquet_dir, parquet_file)
-                        try:
-                            df_parquet = spark.read.parquet(parquet_path)
-
-                            # Extract schema from parquet
-                            parquet_schema = df_parquet.schema
-                            parquet_columns = [field.name for field in parquet_schema]
-                            parquet_types = [field.dataType.simpleString() for field in parquet_schema]
-
-                            # Store schema info
-                            parquet_schema_dict = dict(zip(parquet_columns, parquet_types))
-
-                            # Compare parquet schema with metadata schema
-                            print(f"Comparing schema for {parquet_path}:")
-
-                            for col_name, dtype in parquet_schema_dict.items():
-                                # Check if column exists in metadata
-                                if col_name in metadata_columns:
-                                    metadata_dtype = metadata_columns[col_name]
-                                    if dtype != metadata_dtype:
-                                        print(f"  Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}")
-                                    else:
-                                        print(f"  Match for column {col_name}: Type is {dtype}")
-                                else:
-                                    print(f"  Column {col_name} not found in metadata!")
-
-                            print("\n" + "-"*50 + "\n")
-                        except Exception as e:
-                            print(f"Error reading parquet file {parquet_path}: {e}")
-            except Exception as e:
-                print(f"Error reading metadata file {metadata_path}: {e}")
-
-# Call function to process directories and files
-process_directories(metadata_base_dir, parquet_base_dir)
-
-# Stop Spark session
-spark.stop()
+      1      DATABASE_NAME       CHAR     5  Unnamed: 4                  Unnamed: 5
+0    2         STATE_CODE       CHAR   2.0         NaN                         NaN
+1    3       TERM_DT_YYYY       CHAR   4.0         NaN                         NaN
+2    4         TERM_DT_MM       CHAR   2.0         NaN                         NaN
+3    5         TERM_DT_DD       CHAR   2.0         NaN                         NaN
+4    6             PLCYNO       CHAR  10.0         NaN                         NaN
+5    7  SEGMENT_TABLE_NAM       CHAR   8.0         NaN                         NaN
+6    8      COPYBOOK_NAME       CHAR   8.0         NaN                         NaN
+7    9           POLICYNO       CHAR  10.0         NaN                         NaN
+8   10               CAR#       CHAR   3.0         NaN                         NaN
+9   11   LOGIC_DLTE_TSTMP  TIMESTAMP  26.0         NaN  YYYY-MM-DD-HH.MM.SS.SSSSSS
+10  12      MD566_ROW_CNT   SMALLINT   NaN         NaN                         NaN
+11  13      EAIGG_ROW_CNT   SMALLINT   NaN         NaN                         NaN
+12  14            CLNT_ID       CHAR  11.0         NaN                         NaN
+13  15          ADD_TSTMP  TIMESTAMP  26.0         NaN  YYYY-MM-DD-HH.MM.SS.SSSSSS
+14  16         ADD_SRC_ID       CHAR   8.0         NaN                         NaN
+15  17         UPDT_TSTMP  TIMESTAMP  26.0         NaN  YYYY-MM-DD-HH.MM.SS.SSSSSS
+16  18        UPDT_SRC_ID       CHAR   8.0         NaN                         NaN
+17  19      VALD_DATA_IND       CHAR   1.0         NaN                         NaN
