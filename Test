@@ -1,6 +1,8 @@
 import os
+import pandas as pd
 from pyspark.sql import SparkSession
 
+# Initialize Spark session
 spark = SparkSession.builder.appName("DataValidation").getOrCreate()
 
 # Define base paths for metadata and parquet files
@@ -28,42 +30,51 @@ def process_directories(metadata_base_dir, parquet_base_dir):
         for metadata_file in metadata_files:
             metadata_path = os.path.join(root, metadata_file)
             
-            # Read metadata schema
-            metadata_columns = read_metadata(metadata_path)
+            try:
+                # Read metadata schema
+                metadata_columns = read_metadata(metadata_path)
 
-            # Look for .parquet files in corresponding parquet_base_dir subdirectory
-            relative_dir = os.path.relpath(root, metadata_base_dir)  # Get relative directory path
-            parquet_dir = os.path.join(parquet_base_dir, relative_dir)  # Construct corresponding parquet directory path
-            
-            if os.path.exists(parquet_dir):
-                parquet_files = [f for f in os.listdir(parquet_dir) if f.endswith(".parquet")]
-                for parquet_file in parquet_files:
-                    parquet_path = os.path.join(parquet_dir, parquet_file)
-                    df_parquet = spark.read.parquet(parquet_path)
+                # Look for .parquet files in corresponding parquet_base_dir subdirectory
+                relative_dir = os.path.relpath(root, metadata_base_dir)  # Get relative directory path
+                parquet_dir = os.path.join(parquet_base_dir, relative_dir)  # Construct corresponding parquet directory path
+                
+                if os.path.exists(parquet_dir):
+                    parquet_files = [f for f in os.listdir(parquet_dir) if f.endswith(".parquet")]
+                    for parquet_file in parquet_files:
+                        parquet_path = os.path.join(parquet_dir, parquet_file)
+                        try:
+                            df_parquet = spark.read.parquet(parquet_path)
 
-                    # Extract schema from parquet
-                    parquet_schema = df_parquet.schema
-                    parquet_columns = [field.name for field in parquet_schema]
-                    parquet_types = [field.dataType.simpleString() for field in parquet_schema]
+                            # Extract schema from parquet
+                            parquet_schema = df_parquet.schema
+                            parquet_columns = [field.name for field in parquet_schema]
+                            parquet_types = [field.dataType.simpleString() for field in parquet_schema]
 
-                    # Store schema info
-                    parquet_schema_dict = dict(zip(parquet_columns, parquet_types))
+                            # Store schema info
+                            parquet_schema_dict = dict(zip(parquet_columns, parquet_types))
 
-                    # Compare parquet schema with metadata schema
-                    print(f"Comparing schema for {parquet_path}:")
+                            # Compare parquet schema with metadata schema
+                            print(f"Comparing schema for {parquet_path}:")
 
-                    for col_name, dtype in parquet_schema_dict.items():
-                        # Check if column exists in metadata
-                        if col_name in metadata_columns:
-                            metadata_dtype = metadata_columns[col_name]
-                            if dtype != metadata_dtype:
-                                print(f"  Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}")
-                            else:
-                                print(f"  Match for column {col_name}: Type is {dtype}")
-                        else:
-                            print(f"  Column {col_name} not found in metadata!")
+                            for col_name, dtype in parquet_schema_dict.items():
+                                # Check if column exists in metadata
+                                if col_name in metadata_columns:
+                                    metadata_dtype = metadata_columns[col_name]
+                                    if dtype != metadata_dtype:
+                                        print(f"  Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}")
+                                    else:
+                                        print(f"  Match for column {col_name}: Type is {dtype}")
+                                else:
+                                    print(f"  Column {col_name} not found in metadata!")
 
-                    print("\n" + "-"*50 + "\n")
+                            print("\n" + "-"*50 + "\n")
+                        except Exception as e:
+                            print(f"Error reading parquet file {parquet_path}: {e}")
+            except Exception as e:
+                print(f"Error reading metadata file {metadata_path}: {e}")
 
 # Call function to process directories and files
 process_directories(metadata_base_dir, parquet_base_dir)
+
+# Stop Spark session
+spark.stop()
