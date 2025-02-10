@@ -5,9 +5,12 @@ from pyspark.sql import SparkSession
 # Initialize Spark session
 spark = SparkSession.builder.appName("DataValidation").getOrCreate()
 
-# Define base paths for metadata and parquet files
-metadata_base_dir = "/var/s3fs/OT800/ETBG"
-parquet_base_dir = "/var/s3fs_t/OT800/ETBG"
+# Define directory pairs (metadata_base_dir and parquet_base_dir)
+directory_pairs = [
+    ("/var/s3fs/OT800/ETBG", "/var/s3fs_t/OT800/ETBG"),
+    ("/var/s3fs/OT800/ETBG1", "/var/s3fs_t/OT800/ETBG1"),
+    ("/var/s3fs/OT800/ETBG2", "/var/s3fs_t/OT800/ETBG2")
+]
 
 # Function to normalize data types
 def normalize_data_type(dtype):
@@ -38,8 +41,22 @@ def read_metadata(metadata_path):
     
     return column_data
 
-# Function to process all directories dynamically
-def process_directories(metadata_base_dir, parquet_base_dir):
+# Function to write validation result to a file
+def write_validation_result(message, output_path):
+    try:
+        # Write the message to the output file
+        with open(output_path, "w") as file:
+            file.write(message)
+        print(f"Validation result written to: {output_path}")
+    except Exception as e:
+        print(f"Error writing validation result to {output_path}: {e}")
+
+# Function to process a single directory pair
+def process_directory_pair(metadata_base_dir, parquet_base_dir):
+    # Track overall validation result
+    all_matches = True
+    mismatch_summary = []
+
     # Iterate over subdirectories dynamically for metadata files
     for root, dirs, files in os.walk(metadata_base_dir):
         # Look for any file ending with .metadata
@@ -73,17 +90,29 @@ def process_directories(metadata_base_dir, parquet_base_dir):
 
                             # Compare parquet schema with metadata schema
                             print(f"Comparing schema for {parquet_path}:")
+                            file_mismatches = []
 
                             for col_name, dtype in parquet_schema_dict.items():
                                 # Check if column exists in metadata
                                 if col_name in metadata_columns:
                                     metadata_dtype = metadata_columns[col_name]
                                     if dtype != metadata_dtype:
-                                        print(f"  Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}")
+                                        mismatch_message = f"Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}"
+                                        print(f"  {mismatch_message}")
+                                        file_mismatches.append(mismatch_message)
+                                        all_matches = False
                                     else:
                                         print(f"  Match for column {col_name}: Type is {dtype}")
                                 else:
-                                    print(f"  Column {col_name} not found in metadata!")
+                                    mismatch_message = f"Column {col_name} not found in metadata!"
+                                    print(f"  {mismatch_message}")
+                                    file_mismatches.append(mismatch_message)
+                                    all_matches = False
+
+                            if file_mismatches:
+                                mismatch_summary.append(f"File: {parquet_path}\n" + "\n".join(file_mismatches))
+                            else:
+                                mismatch_summary.append(f"File: {parquet_path}\nAll columns match.")
 
                             print("\n" + "-"*50 + "\n")
                         except Exception as e:
@@ -91,8 +120,22 @@ def process_directories(metadata_base_dir, parquet_base_dir):
             except Exception as e:
                 print(f"Error reading metadata file {metadata_path}: {e}")
 
-# Call function to process directories and files
-process_directories(metadata_base_dir, parquet_base_dir)
+    # Prepare the message for this directory pair
+    if all_matches:
+        message = f"All columns match for directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}\n\n" + "\n".join(mismatch_summary)
+    else:
+        message = f"Schema validation found mismatches for directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}\n\n" + "\n".join(mismatch_summary)
+
+    # Write the validation result to a file in the /var/s3fs/ directory
+    output_dir = os.path.join("/var/s3fs/validation_results", os.path.basename(metadata_base_dir))
+    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    output_path = os.path.join(output_dir, "validation_result.txt")
+    write_validation_result(message, output_path)
+
+# Process each directory pair
+for metadata_base_dir, parquet_base_dir in directory_pairs:
+    print(f"Processing directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}")
+    process_directory_pair(metadata_base_dir, parquet_base_dir)
 
 # Stop Spark session
 spark.stop()
