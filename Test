@@ -84,3 +84,32 @@
       "kms:Create*",
       "kms:CancelKeyDeletion"
     ]
+
+
+Error: creating S3 Bucket (sf-pcmngd04-use2-test-autolegacyilm-s3-landing) Notification: operation error S3: PutBucketNotificationConfiguration, https response error StatusCode: 400, RequestID: 188EVVEAXWBY6FR4, HostID: G83H8unzLlVdhRsyE0SxgWnkgZaqv/ajTq4YQjtevX+TLfJpWIBP5cA6HnfDsOoMaGBR+wpsubI=, api error InvalidArgument: Unable to validate the following destination configurations
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: │ 
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: │   with aws_s3_bucket_notification.bucket_notification,
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: │   on landing-bucket.tf line 59, in resource "aws_s3_bucket_notification" "bucket_notification":
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: │   59: resource "aws_s3_bucket_notification" "bucket_notification" {
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: │ 
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: ╵
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: 
+TestS3BucketExists 2025-02-11T21:15:00Z logger.go:67: Error: Failed to perform terraform apply. Unexpected exit code: 1
+TestS3BucketExists 2025-02-11T21:15:00Z retry.go:99: Returning due to fatal error: FatalError{Underlying: error while running command: exit status 1; }
+    apply.go:15: 
+        	Error Trace:	/go/pkg/mod/github.com/gruntwork-io/terratest@v0.48.2/modules/terraform/apply.go:15
+        	            				/builds/autolegacyilm/autolegacy-ilm-tf/terratest_s3/s3_test.go:56
+        	Error:      	Received unexpected error:
+        	            	FatalError{Underlying: error while running command: exit status 1; }
+        	Test:       	TestS3BucketExists
+
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = module.sf_s3_landing.id
+
+  queue {
+    queue_arn     = var.queue_arn
+    events        = ["s3:ObjectCreated:*"]
+    filter_suffix = ".trigger"
+  }
+}
