@@ -190,10 +190,8 @@ def process_directory_pair(metadata_base_dir, parquet_base_dir):
                 print(f"Error reading metadata file {metadata_path}: {e}")
 
     # Prepare the message for this directory pair
-    if all_matches:
-        message = f"All columns match for directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}\n\n" + "\n".join(mismatch_summary)
-    else:
-        message = f"Schema validation found mismatches for directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}\n\n" + "\n".join(mismatch_summary)
+    message = f"Validation results for directory pair:\nMetadata: {metadata_base_dir}\nParquet: {parquet_base_dir}\n\n"
+    message += "\n".join(mismatch_summary)
 
     # Write the validation result to a file in the /var/s3fs/ directory
     output_dir = os.path.join("/var/s3fs/validation_results", os.path.basename(metadata_base_dir))
