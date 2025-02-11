@@ -1,80 +1,86 @@
-import os
-import pandas as pd
-from pyspark.sql import SparkSession
-
-# Initialize Spark session
-spark = SparkSession.builder.appName("DataValidation").getOrCreate()
-
-# Define base paths for metadata and parquet files
-metadata_base_dir = "/var/s3fs/OT800/ETBG"
-parquet_base_dir = "/var/s3fs_t/OT800/ETBG"
-
-# Function to read the metadata and extract column names and data types
-def read_metadata(metadata_path):
-    metadata_df = pd.read_csv(metadata_path, skiprows=2)  # Skipping first 2 lines as per your input
-    column_data = {}
-    
-    # Extract relevant columns from metadata
-    for index, row in metadata_df.iterrows():
-        column_data[row['COL_NAME']] = row['DATA_TYPE']
-    
-    return column_data
-
-# Function to process all directories dynamically
-def process_directories(metadata_base_dir, parquet_base_dir):
-    # Iterate over subdirectories dynamically for metadata files
-    for root, dirs, files in os.walk(metadata_base_dir):
-        # Look for any file ending with .metadata
-        metadata_files = [f for f in files if f.endswith(".metadata")]
-        
-        for metadata_file in metadata_files:
-            metadata_path = os.path.join(root, metadata_file)
-            
-            try:
-                # Read metadata schema
-                metadata_columns = read_metadata(metadata_path)
-
-                # Look for .parquet files in corresponding parquet_base_dir subdirectory
-                relative_dir = os.path.relpath(root, metadata_base_dir)  # Get relative directory path
-                parquet_dir = os.path.join(parquet_base_dir, relative_dir)  # Construct corresponding parquet directory path
-                
-                if os.path.exists(parquet_dir):
-                    parquet_files = [f for f in os.listdir(parquet_dir) if f.endswith(".parquet")]
-                    for parquet_file in parquet_files:
-                        parquet_path = os.path.join(parquet_dir, parquet_file)
-                        try:
-                            df_parquet = spark.read.parquet(parquet_path)
-
-                            # Extract schema from parquet
-                            parquet_schema = df_parquet.schema
-                            parquet_columns = [field.name for field in parquet_schema]
-                            parquet_types = [field.dataType.simpleString() for field in parquet_schema]
-
-                            # Store schema info
-                            parquet_schema_dict = dict(zip(parquet_columns, parquet_types))
-
-                            # Compare parquet schema with metadata schema
-                            print(f"Comparing schema for {parquet_path}:")
-
-                            for col_name, dtype in parquet_schema_dict.items():
-                                # Check if column exists in metadata
-                                if col_name in metadata_columns:
-                                    metadata_dtype = metadata_columns[col_name]
-                                    if dtype != metadata_dtype:
-                                        print(f"  Mismatch for column {col_name}: Parquet type is {dtype}, Metadata type is {metadata_dtype}")
-                                    else:
-                                        print(f"  Match for column {col_name}: Type is {dtype}")
-                                else:
-                                    print(f"  Column {col_name} not found in metadata!")
-
-                            print("\n" + "-"*50 + "\n")
-                        except Exception as e:
-                            print(f"Error reading parquet file {parquet_path}: {e}")
-            except Exception as e:
-                print(f"Error reading metadata file {metadata_path}: {e}")
-
-# Call function to process directories and files
-process_directories(metadata_base_dir, parquet_base_dir)
-
-# Stop Spark session
-spark.stop()
+ actions = [
+      "s3:GetObjectVersionTagging",
+      "s3:GetObjectAcl",
+      "s3:GetBucketObjectLockConfiguration",
+      "ec2:StartInstances",
+      "ec2:DescribeInstances",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "s3:GetObjectVersionAcl",
+      "s3:ListObjects",
+      "s3:PutObject",
+      "s3:PutObjectTagging",
+      "s3:HeadBucket",
+      "s3:DeleteObject",
+      "s3:DeleteObjectTagging",
+      "s3:GetBucketPolicyStatus",
+      "s3:GetObjectRetention",
+      "s3:GetBucketWebsite",
+      "s3:ListJobs",
+      "ec2:RunInstances",
+      "s3:DeleteObjectVersionTagging",
+      "s3:GetObjectLegalHold",
+      "s3:GetBucketNotification",
+      "ec2:StopInstances",
+      "s3:GetReplicationConfiguration",
+      "glue:CreateCrawler",
+      "glue:TagResource",
+      "s3:ListMultipartUploadParts",
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DescribeJob",
+      "s3:GetAnalyticsConfiguration",
+      "s3:GetObjectVersionForReplication",
+      "s3:CreateJob",
+      "s3:GetLifecycleConfiguration",
+      "s3:GetAccessPoint",
+      "s3:GetInventoryConfiguration",
+      "s3:GetBucketTagging",
+      "s3:GetBucketLogging",
+      "s3:ListBucketVersions",
+      "s3:ReplicateTags",
+      "s3:ListBucket",
+      "s3:GetAccelerateConfiguration",
+      "s3:GetBucketPolicy",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetObjectVersionTorrent",
+      "sns:Publish",
+      "sns:*",
+      "s3:PutBucketTagging",
+      "s3:GetBucketRequestPayment",
+      "s3:GetAccessPointPolicyStatus",
+      "s3:GetObjectTagging",
+      "s3:GetMetricsConfiguration",
+      "s3:PutObjectAcl",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:ListBucketMultipartUploads",
+      "ec2:TerminateInstances",
+      "s3:ListAccessPoints",
+      "s3:PutObjectVersionTagging",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketAcl",
+      "s3:GetObjectTorrent",
+      "s3:GetAccountPublicAccessBlock",
+      "s3:ListAllMyBuckets",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLocation",
+      "s3:GetAccessPointPolicy",
+      "s3:GetObjectVersion",
+      "kms:Update*",
+      "kms:UntagResource",
+      "kms:TagResource",
+      "kms:ScheduleKeyDeletion",
+      "kms:Revoke*",
+      "kms:Put*",
+      "kms:List*",
+      "kms:Get*",
+      "kms:GenerateDataKey",
+      "kms:Encrypt",
+      "kms:Enable*",
+      "kms:Disable*",
+      "kms:Describe*",
+      "kms:Delete*",
+      "kms:Decrypt",
+      "kms:Create*",
+      "kms:CancelKeyDeletion"
+    ]
