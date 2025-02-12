@@ -135,3 +135,79 @@ module "sqs" {
   lambda_role_arn     = var.lambda_role_arn
   s3_landing_arn      = module.s3.s3_landing_arn
 }
+
+
+package terratests
+
+import (
+	"os"
+	"testing"
+	"time"
+	"fmt"
+	"os/exec"
+	"github.com/stretchr/testify/assert"
+	"github.com/gruntwork-io/terratest/modules/files"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+)
+
+func TestS3BucketExists(t *testing.T) {
+	    //setting scalr workspace
+	    scalrOrg := "sf-pcmngd04-test-tenant-autolegacyilm-env"
+	    scalrEnv := "sf-pcmngd04-test-tenant-autolegacyilm-env"
+	    scalrWorkspace := "sf-pcmngd04-autolegacyilm-terratest-workspace"
+	    scalrCmd := exec.Command("scalr", "workspace", "get", scalrWorkspace, "--org", scalrOrg, "--env", scalrEnv, "--output", "json")
+	    scalrCmd.Dir = "../terraform/modules/s3"
+		
+	    accountId := os.Getenv("ACCOUNTID")
+	    fmt.Println("Running in account: " + accountId)
+	    defer os.Remove("../terraform/modules/s3/provider.tf")
+	    defer os.Remove("../terraform/modules/s3/backend.tf")
+	    defer os.Remove("../terraform/modules/s3/s3_test.auto.tfvars")
+	    files.CopyFile("provider.tf", "../terraform/modules/s3/provider.tf")
+	    files.CopyFile("backend.tf", "../terraform/modules/s3/backend.tf")
+	    // creating temp folder and copying tfvars file using CopyFile function
+	    exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "../terraform/modules/s3", "./")
+	    files.CopyFile("s3_test.auto.tfvars", "../terraform/modules/s3/s3_test.auto.tfvars")
+	    files.CopyFile("s3_test.auto.tfvars", exampleFolder+"/"+"s3_test.auto.tfvars")
+
+	    terraformOptions := &terraform.Options{
+		        // The path to where our Terraform code is located
+		        // added temporary folder
+		        TerraformDir: exampleFolder,
+
+				// Environment variables to set when running Terraform
+		        EnvVars: map[string]string{
+			            "AWS_DEFAULT_REGION": "us-east-1",
+		        },
+				// temporary fix for the "logging empty output error" till we get permanent fix
+				// https://github.com/hashicorp/terraform-provider-aws/issues/31139
+		        RetryableTerraformErrors: map[string]string{
+			            ".*empty output.*": "bug in aws_s3_bucket_logging, intermittent error",
+		        },
+		        MaxRetries:         5,
+		        TimeBetweenRetries: 5 * time.Second,
+	    }
+
+	    // At the end of the test, run `terraform destroy`
+	    defer terraform.Destroy(t, terraformOptions)
+	    // Run `terraform init` and `terraform apply`
+	    terraform.InitAndApply(t, terraformOptions)
+
+		// Expected bucket ARNS
+	    expectedLandingARN := "arn:aws:s3:::sf-pcmngd04-use2-test-autolegacyilm-s3-landing"
+		expectedRawARN := "arn:aws:s3:::sf-pcmngd04-use2-test-autolegacyilm-s3-raw"
+
+		// Define output ARNS
+	    outputLandingName := "s3_landing_arn"
+		outputRawName := "s3_raw_arn"
+
+	    s3LandingARN := terraform.Output(t, terraformOptions, outputLandingName)
+	    s3RawARN := terraform.Output(t, terraformOptions, outputRawName)
+
+		// asserts
+		assert.Equal(t, s3LandingARN, expectedLandingARN) 
+		assert.Equal(t, s3RawARN, expectedRawARN) 
+
+}
+
