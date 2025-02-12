@@ -1,663 +1,150 @@
-
-See if I can I was like, I know we sent one? I just don't remember which one we sent. See if this one's gonna have the information I'm looking for. We'll start with this one just because I think it'll have most of the information, and then, I can find a different one if it's not specific enough. So were you looking for our transfer family and conversion engine?
-
-Just one of them? Yeah. The first one is a transfer family, and the next, we'll just work on the conversion engine. But we need, yeah, transfer family thing. Yeah.
-
-This transfer family, I would say this is probably pretty updated and specific. So you guys are mainframe side. So the source here would be mainframe. The protocol that transfer family uses for the data movement is the SFTP. So there's that authentication with the SSH key, and then the script that actually the JCL script that the mainframe team is running to actually move the data.
-
-It's going through, like, our AWS connections between the data center and AWS, which PCAT has set up all that Direct Connect, deal. And then this is our our RunDMC data ingestion account, which has that SFTP server running. So in this case, like, the mainframe is the client in the SFTP connection, and then the server is what we manage. So we manage the server and then set up your guys' like user on that server to have, a specific IAM role that allows access to your bucket, access to KMS, so set that up with your transfer family users so that kinda scopes the permissions, to exactly what you guys need access to. And then Arvin and team, you guys have updated it to give that role access to your guys' bucket, in this account.
-
-So there's some some cross account access there. And then, there's a route 53 DNS alias in front of the server endpoint. So it's a VPC endpoint, but we have a alias in front of it. So that is our, one of the steps we added to help with Doctor. Right now that alias is pointing to US East 1 with our current availability, we only have a server actively running in US East 1 because the transfer family server is charged all the time whether it's being used or not.
-
-There's no really, like, stop mode. It's either created and being charged or destroyed. So our current availability, that would be part of our recovery is to stand up the server, load all the users, and then, flip the alias, if there was a true, like, outage. Other than that, anything else, like, Doctor wise, the user in the role, because their IAM will be global, so you'll have access, to USC's bucket. And then we have previously been adding it for EDLA specifically, but if you know what your naming standards are gonna be for your west bucket, we can ensure that that access is also in place, if you were ever to to need to transfer data to the west bucket.
-
-Are you guys gonna have, your bucket set up with replication, cross region replication? Yeah. We are planning to do that one, Alex, for the cross region, replication as well, in the coming days. So possibly, you you will be taking care on, from your end that, once there is something happens or how this strategy works. In fact, is that the active active thing or active passive or, is that going to be transferred the data first to The US East 1?
-
-And if there is any failover happens, then only it will go to the other region. How that actually configured in this, setup? So for our team, it's it's all about where the data is being replication turn on, in production and then, I believe, a particular test lane. So if you were to send data to production you were to send data to production US East 1 using transfer family, the data would be replicated to West. Like, automatically, it would be more like if there's a disaster and you needed to send data to West because East is unavailable, then we would need access.
-
-Like, we we would have that access set up to be able to send data to West. So we don't do anything with our team, actually rep it replicating the data. It's just access to both regions, for that transfer. Does that makes any sense? Yeah.
-
-Alexa, I think Arvin has some question here. Yeah. Yeah. I Sayedra, I I thought we said that for the landing bucket, we're not gonna replicate because it's only temporary. Right?
-
-Okay. We're gonna replicate the raw because that's where our data would be. But I don't think we'll do that for the landing. Okay. That makes sense.
-
-It seems like a lot if it's only gonna be there temporarily. Yeah. And just your team. And if ever, you know, worst case, they can rerun our if we haven't deleted the mainframe job, then we could still rerun it. Right?
-
-Mhmm. Yeah. So then you know. Doctor wise in that case, it it would be, any any time there like, if there's a complete, like, east outage, you would be sending the data to west, landing instead. So If if we need to to run the main Yeah.
-
-If you needed to run during the PR. Outage. Right. Exactly. Which is I hope we don't plan to do.
-
-There's probably enough other things going on that the data movement is probably not in the especially for what you guys are using this data for. That's probably not the highest priority thing going on. But yes. So does that help with the transfer family questions? Yeah.
-
-Unless we don't have to worry about replicating that. Right? So Yeah. I think we're good with that. Okay.
-
-Yeah. Because transfer family for your guys is would only in interact with landing. So if you're not replicating that, then you should be pretty set. Yeah. So we understand that there is, if there is any, anything, in either case, the file has been got transferred and, looks good, and it's actually got landed in the landing bucket.
-
-So or if there is any failures has happened in between, right, if the, if the file is actually not got, passed through the landing bucket. Is there any failure strategies in that, case, Alexis? There's something or test Like, if there's an error during the transfer? Transfer. Yeah.
-
-So in this case, since, I know it's not your guys' specific team, but it it would be the mainframe team in this case since they're, like, responsible for, creating and scheduling and running that job, they would see the errors on their side if there is something wrong with, like, the data transfer. We would probably get it through our logs too, assuming it made it to the server. So say, like, there's an error in their job where it wasn't able to connect, like, we won't be able to see that at all because it's on the mainframe side. But anything that's able to make it to our server that's an error, we'll see it in our logs. Since it's a lot of customer, driven jobs, we we usually pay attention if there's, like, a trend.
-
-If there's, like, a bad SSH key, we assume somebody changed the key quickly or like, if it's just a once error, there's usually not any action because it's whatever this job is. If there's persistent failures, then we usually will reach out to, like, the producer team. But all of the errors, like, on data movement would be from the the mainframe team would see them for transfer handling. So it would be having having, like, their logs be able to tell you guys if data is not successful. Okay.
-
-I would say that probably doesn't happen very often too. Usually, honestly, once we get transfer family set up, there's usually not a room for errors. I would say the main things that usually, cause errors are, like, somebody changes the s three bucket permissions or KMS permissions that you set up. Like, if you change something on your policies in AWS that break our access, that usually call causes a problem because the permission would be denied. Or if, like, mainframe did something with the SSH key to, like, change the key and they didn't tell us.
-
-It's basically and as long as once it's set up, nothing should be wrong. But it does happen occasionally. But it's usually, like, something in the environment change, not, like, anything wrong particularly with transfer family. We do have, like, monitoring for the the server itself. So we have a health check job that runs every fifteen minutes.
-
-So if something were to happen to the server, we would get alerted about that, because that would kinda impact all of our customers. But usually, transfer family is pretty low maintenance once it's set up. So, Alex, I have a question. Yeah. So let's say there is a file, you know, like, which has got 50,000 records coming from mainframe.
-
-You know? And now around 40,000 records every single day when the job fails. So in that situation, like, how does it really work? Is it that the remaining 60,000 will be pulled out? Like, what will be the approach to see the data integrity and the nature of records that we are going to receive in the landing bucket?
-
-So you're saying, like, a file where not the entire file is transferred? Mhmm. It's a really good question. I don't know if I've ever seen that happen To be able to tell you exactly what it does, I would assume that the SFTP would throw an error because it would be it it transfers, like, per file. So I feel like if you got partially through a file and something happened, you would get some sort of error.
-
-But I don't know if I've seen that. I can check to see if anybody knows, but, I would say that one's probably not very common. I would I would assume that would be on the mainframe side. I can I can see if I can find anything that would tell me a little bit more for sure? Okay.
-
-Okay. Thanks. Yeah. Because, see, if we are trying to load the same data in a duplicated way in landing, you know, like, that's what is going to happen. So, I do not know that What do you mean?
-
-Oh, so so the records that were popping up from mainframes Mhmm. Coming back to the same thing, you know, like the the way I explained that out of, hundred thousand, 40 thousand have been moved to the landing bucket. Let's say the file has been picked up and suddenly something happens, and 60,000 records are still remaining to be processed from mainframe side. How will that work? I would I would think if we're I I think for data movement, they the files wouldn't be moved until the mainframe team has all of the data that they're looking to send at that time.
-
-I could be wrong. It would be it depending on how they're doing the export and the the actual job. All or nothing. Right? There's no partial.
-
-Yeah. Yeah. That's what I'm trying to think through. Like, if the mainframe team is sending it like, if they have all of the files they're looking to send I mean, if they had multiple files to send in a particular job and only a couple of them worked, that you would get that error with which files were able to transfer and which ones weren't. I just I don't know much within a file if there would there would be an issue.
-
-I don't I my guess is the file would not be uploaded. I don't think you would get a partial upload Okay. Of the file. Okay. So, like, the way Arvin just mentioned, is it it is either all or nothing?
-
-That might be the strategy that you've done? That's my understanding. I can look into how the SFTP works to see if there would be a reason where there would be a partial upload, but my guess is file wise, it would be all or nothing of whatever they're sending. Okay. Okay.
-
-Thank you. Does that help? Yeah. It does. Yeah.
-
-Like, if you can find this out, you know, like, that would be good for us. I'll see if I can find some dark or something. You guys ask the good questions. I'll exam a question to so let's say, like, you know, they have 10 files and five failed, and they rerun the job. You will you will override the data that's already been transferred, I think, in case they rerun the entire job.
-
-If they rerun the entire job, yes. It would be overwritten. It will overwrite. Okay. Thank you.
-
-Okay. One more quick question, Alex, that, we have, the max size of five terabyte. Right? So, what is the strategy that, you people have been implemented in terms of file sizes that, this is the standard that we are using. And even if you, we even, the mainframe team is sending a huge file, you people are chunking some between and then transferring the data or, any any file size strategies has been got implemented, Alex?
-
-So for the file size limit, the five terabytes comes from s three. So the limit for the max a single file can be in s three is five terabytes. So there's there's nothing we can really do to get around that one. It's the most a single file can be is gonna be five terabytes. I wouldn't necessarily recommend trying to send a five terabyte, file just because of, I would say, like, the network connection wise.
-
-I don't know how long that would take, in our environment. I don't know if anybody's tried to send one. But that that's coming from an s three limit. So in terms of, like, the file size, that's the max that Transfer Family can move because that's the max that the storage location of s three will allow. That being said, like, Transfer Family is just moving the files.
-
-It's it's just a straight move. So whatever they're coming in as is what we're moving. So if it was five terabytes or less, I would assume that we would be moving it. If it's more than five terabytes, I would think you would get some sort of error. I don't know if it would be a time out or if it would be able to recognize that ahead of time.
-
-I haven't heard us be talking about the data on this scale. Do we expect higher than five terabytes per file? I haven't really gotten the size from the mainframe team yet. But this would be, like, per file. So if they're exporting it by state, by I don't remember what they're doing.
-
-Database segment after each state is migrated. So it would be whatever that export that they're doing that they're trying to transfer. It'd be five five terabytes. So is that, like, something I should be talking to the mainframe team to see if they're concerned about that limit? No.
-
-It's a kind of a generic question, but, yeah, it implies to, those data storage as well that get, get transferred to the AWS. So yeah. Yeah. We're not, like, doing any additional checking or splitting or anything. It would be I'm I'm guessing it would fail.
-
-I don't think we've tried it. So it it would be the responsibility of the consumer. So in this case, it would be our mainframe team to make sure that the the data size for each file doesn't ex exceed that five terabyte. Right? Yes.
-
-Yeah. So usually, what we would do is we would, it would be sharing with the producer that the files need to be in those sizes or less. So So what about, zip? So because you said that the limit is on the s three. So if you expanded that zip file, are you gonna so so what if the expanded file is more than that pipe terabyte?
-
-Which we Transfer family, we're not gonna, unzip any files. Transfer family, if it's, we prefer gzip. So if it's g zipped on the mainframe, we'll be moving it, and it'll be landed g zipped. We don't change any of that Okay. For transfer family.
-
-It would be more, conversion engine when it gets if if we have compressed files, conversion engine will unzip them. So it would be a higher size for that. Okay. I'd like one question, Alex. So, are there any logs being captured from the AWS transfer family into the CloudWatch for monitoring?
-
-Or like, let's say, any activity where we want to trace, like any failed login attempts or anything? So those information will be available in the CloudWatch logs for this monitoring? We have CloudWatch logs on the server. And then from there, you like, at least we are able to see, like, per user what that activity is. All of those logs are also being sent to Dynatrace and Splunk.
-
-So, like, we have a Dynatrace dashboard. Are you so you guys would be looking to do, some potential things with those logs? Yeah. So, again, like, any any failure. So, again, like, we we if you want to backtrack and to see on which data file sent, so what the content in it, and let's say if we want to backtrack and, do the tracing.
-
-So we just want to know whether we if the logs is available or not. But Yeah. So the the logs are available in our account, and they're being forwarded to Splunk and Dynatrace, which is a little bit, I would say, wider access. So you should be able to find them in those tools. I don't think we we have probably more transfer family alerting, but there's not a great way to filter it by your individual user right now.
-
-Maybe something that we can get to or put on our backlog at some point. I could probably find one, Arvin. I don't think I have one off the top of my head, but I can find one. I know at least what we're using on Dynatrace. I can find the Dynatrace dashboard too and send you the link so you could take kind of a look.
-
-Yeah. Even even for the Splunk query also, like, we just want to know the what is the exact index we need to search, Alex. Oh, yeah. I can I can give you that index text because I know you'll need that? Our stuff is going to Splunk.
-
-I did an initial couple searches, like, getting that enabled, but I would say, like, our team doesn't really use the Splunk for anything. Most of our stuff is on Dynatrace for, monitoring. So I can give you, like, the first query that I have that I know will search, like, that particular log group, and then anything else would probably be figuring out what's kinda similar to Dynatrace. So I'll I'll add that to my list. So Splunk Query and Dynatrace dashboards.
-
-But that would be probably the easiest way right now to get the logs. Yeah. And also one last question, Alex. So is there any checks will be performed on the Direct Connect connection? I guess, is there any health checks will be performed from your team to monitor whether the connection has been established or Specifically for Direct Connect or for the transfer family server connection?
-
-Specifically for Direct Connect. That I would have to ask. You would have to ask PCAT. PCAT manages the connection between, like, State Farm on prem and AWS. So this is all managed by PCAT.
-
-It's just when we're going through from the mainframe side, like, in a State Farm Digest Center to AWS, that's being managed through that PCAT Direct Connect setup. So that would probably be more questions for I can see if I can get you a name. It would be, like, their networking group, but if you have specific questions. Maybe I'll make a note of it because that the key. We will have to get the files out of the connection.
-
-We're not established and has been off during the time, then there'll be a chance of Yeah. I would say, like, if if Direct Connect is down between State Farm and AWS, you'll find out about it because that'll break a good majority of everything. But it's just more like our connection is going going through that. But I can see if I can find you a networking contact too and PCAT. Yeah.
-
-Thanks. That's good to be. I know who I know who our normal person is, but I'm pretty sure I have two, but one of them is just retired. So I need to figure out who is the who is the new one. So, okay, any other, I guess, questions for now?
-
-So Splunk Dynatrace and PCAT networking is on my to do list. Oh, partial file uploads. That's the other one. K. I'm gonna make the notes so that I remember after this meeting what we were talking about.
-
-Anything else transferred to them? Yeah. Not not for not for you. I'm the expert for my team, you know, like, so we, I think our team has already decided the s three folders that we have to have in, landing buckets. Am I right, team?
-
-Yes, David. Okay. Okay. So with each extract that we are going to have for a state or table, I think we do have now a fixed type of a thing that, okay, this is how we are going to store the data, in folders. So that's good.
-
-So, because do we have to provide that information to transfer family or, like, it can be automatically taken care of? So is it that those parameters need to be provided to Alex? I think we'll be yeah. Yeah. Go ahead.
-
-Those are set on the mainframe jumps. I think access wise, I could be wrong. I think we gave you guys the entire bucket Right. From our side. Is that what you provided on your We gave you an access to the impact bucket.
-
-Okay. Yeah. So yeah. But, the destination is defined on the Mhmm. On the JCL that they run.
-
-Yeah. So the name they the the naming convention also, the file name, things like that, would be defined on the mainframe site. Okay. K. We're kinda halfway through.
-
-Do we wanna switch to conversion engine? Because I think that one probably will have some discussion. Chris found my diagram for me. Thank you, Chris. Yeah.
-
-Yeah. I'm gonna drop I'm gonna drop by 02:30 off. Okay. I'll let you know if there's anything cool. Okay.
-
-Thanks. Oh, okay. Thank you, Chris. Let me see if that's this. Okay.
-
-This one's got a little bit of our internal workings of DICE, kinda put in it. So I will say, like, we have it's called DICE. It's the data ingestion and conformance engine. Basically, we just have it built to kind of manage does this have a good picture? This is probably a better picture.
-
-Basically, we have it we we built a a service for our team at this point, that helps us manage customer configuration. So we probably have, let's say, roughly 60 different transfer family customers, and they used to be managed through Terraform. So as our next evolution of that, we have this service that has several Lambdas that help us create the needed, AWS components for each flow, keep track of updates, different things. So Dice is what's gonna create, like, all of the pieces for each flow. So for transfer family, transfer family DICE's only enablement.
-
-So transfer family, we're gonna load the information. It's a it's a JSON file config that we upload into DICE, and it puts it in a DynamoDB table. And then it'll create, those components that I was talking about, like your transfer family user role, your policy, your SSH keys, the user. Like, everything you need for your job is gonna be created by transfer family when it's, enabled. And so one of our developers on our team already did that.
-
-And then for Transfer Family, that's it. So it's just setting that up. It's setting up permissions, and then you guys control the execution. For conversion engine, it's why we started doing these boxes in our diagram. So enablement, is really where DICE is involved for, transfer family.
-
-But for conversion engine, there's more arrows kinda going over these two lines. So, basically, enablement still the same. So that creates that SNS topic that I got, your guys' subscriptions to. It creates if it's scheduled, it would create an event bridge rule, but you guys aren't gonna be scheduled. You guys are gonna have an SQS trigger, so it sets up that trigger to our Lambda, to start the job.
-
-So, still creating infrastructure needed for conversion engine. But then as far as, like, when conversion engine runs, we have, have, some Lambdas that will launch an e c two. And then the e c two is, like, the actual conversion job. So we use, a series of scripts. It's, Python mixed with Shell.
-
-Python is PySpark. So the most of the conversion is actually done with PySpark, and then having some other scripts kind of around that to kinda orchestrate the rest of the thing. So getting a file list, sending notifications, things like that. So when the job runs, if you guys since you guys decided on doing SQS, this is not the most updated diagram. Let me move this arrow.
-
-So SQS, the notification would for the s three landing of that trigger file would come. It would go into the queue. The queue would trigger our launch Lambda, and then it would start the EC two to do the job. So when that runs, it'll go through that file list that was provided, do all of the conversions, move them, read the file in from source, do the conversion, write it to destination in parquet. This is one view of how conversion yeah.
-
-Let I can send either the I can I can find the file links? You should have access to them, so let me see if I can send them. So, Alex, I have a question. Yeah. So this SQS concept is also applicable to the data that we are going to get from mainframes also.
-
-Am I right? Yeah. So so the these are the kinda so So SQS is applicable to both the side. Am I right? That's what I'm trying to confirm.
-
-Yeah. So that's so the the SQS, like, queue in this case, this queue and, like, the this is supposed to we've generalized it. Like, the s three event notification to the queue, that would live in your guys' account right now. So this is probably in some other account. The rest is in our account.
-
-So, s three event going in the queue, and then that queue triggers the Lambda in our account. The piece that kinda connects it to the mainframe is the trigger file that's placed is, like, the index file, like, list of all of the files that conversion engine should process. So when when the mainframe file, like, writes the trigger file, they'll write, the set of files that they transferred that need conversion. And then when that file is uploaded to s three, it would kick off the job. So I don't I'm not really good with, typing, while or draw.
-
-Io while sharing. So I'm just gonna type in this. But, basically so the, the main frame team would transfer, like, the data files using transfer family, their their JCL transfer job. And so let's say it's file one. You guys have out files.
-
-File two. So in which the first step would be to transfer the data files. And after that, they would have the trigger file or index file. We kinda use, I would say, both. The file itself would be d v I l m.
-
-Something something like this. It would be like a trigger that has the name of your guys' flow and conversion engine. And then inside this file, it would have that list that they want converted. So from a mainframe perspective, they need to create this file, and then they would use transfer family to send that trigger file to a specific spot in s three that you guys set up the notifications. Okay.
-
-So Alright. Then SQS queue conversion engine. That's probably the closest order. So so they would transfer the data files. They would create this trigger file.
-
-They would send this trigger. So this is all mainframe side. This piece with the s three eventing the queue and then, like, starting conversion engine, this is on the AWS side, if that makes sense. That's kinda where the divide is. So there's a little bit work of work on the mainframe side to get the trigger file created and send it, and then to, like, receive that event of that trigger file being Yeah.
-
-Yeah. I'm taking notes here. Okay. Just copy paste this, whatever you did Yeah. So that on the chat window here.
-
-You can do that. Thank you. And One of my teammates does this all the time. I was gonna say, we're also gonna update our technology to reflect this. Because right now, that's that's what we're making.
-
-It's the, we're updating our tenant to process that SQS event to send to Okay. The EC two Lambda. Okay. Yeah. So the Lambda role that I gave you is for I can't draw.
-
-It's for this Lambda. This is for our API, so you can kind of ignore this right now. But this is this is the where that queue would trigger. It would trigger the the e c two or the Lambda to launch the e c two. And then this e c two job for you guys, you guys are doing, like, batch jobs.
-
-So the e c two will be launched, at the when it receives that event from the queue, it'll be launched. And then when it's done processing all the files, it'll terminate. So it runs as long as it needs to, and then it's gone. So the e c two itself is only for your guys' job. But this is where when you were talking about, like, compressed files, the this would do some of the unzipping of the files, and it would split files.
-
-So right in regards to splitting files, conversion engine, our default is usually three gigs, like, before conversion. So if the file is bigger than three gig, then we would split it, generally because three gig, produces a parquet file that has been, I would say, at least historically optimized for some different consumption tools. But that's a value that we can adjust. So if the if we want if you guys want a little bigger parquet file, those are some parameters. I have it set to three right now.
-
-But I think once we have a better idea of how big your files are and kinda what you're looking at what's the consumption tool tool you guys are gonna use, Athena? Yes. Athena by Smart. Okay. Okay.
-
-So that also helps so that I can see if there's a value. But we usually start with three gig. So then if a file is bigger than that, it would split it, so there would be multiple outputs. And I think that was on my list. Was it you guys that wanted, like, the part file naming?
-
-I'll add that to my list too. Thank you guys. One of the part files. But it was essentially instead of having, like, one source file and one output file in Parquet, it would be one source file and then, like, a similarly named but sequence number on the end when it's split. So if it's file one dot out, it would be file one zero one, file one zero two, file one zero three, whatever that standard is.
-
-And I can find that that naming standard. So, Alex, there's that would be a general question that, for in the beginning, right, you will be taking the JSON format. Right? That, the parameters and all. So can you give us, some basic parameters that you have been put across in the specific to our use case?
-
-What exactly the parameters that has been used? Yeah. I can show you. I don't know if it's super it's gonna be super helpful for you guys. Most of it's on how to read the source files.
-
-So that's what I've been going back and forth with mainframe a lot to figure out how the source file is going to be written, like, what the different characters they're going to be using. Let me show you real quick. I can pull it up. Yeah. DBILM.
-
-Okay. So this is probably a little specific. I don't know that other customers usually ask. Transfer family is pretty simple. This top is basically all the information you provided on the form.
-
-The form number, what department you guys are from, contact list, all my ID, all data sensitivity, all of those kinds of things that we asked on the form. The additional config for transfer family, setting that home directory. So this is where when you do the SFTP connection, the first place that you go, bucket with prefix list is all the places you have access to. So, like, right now, I can tell that you guys don't have access to West. So, if you guys wanted access to West, I need to add that.
-
-But, this would set like, for home directory wise, it would be when you connect, to our transfer family server in East, you would be in your East bucket. If we had our West server up, you would connect to West, assuming there's some sort of disaster, meaning you can't connect to East. But then in terms of, like, what you have access to, you guys would have access to either bucket. So that's probably how this would look if I did it correctly. It has the, the transfer family public keys and then our server ID.
-
-Right now, it's always the same server for us and then where you guys are coming from. So you guys are coming from mainframe. So transfer family, configuration, pretty straightforward for what you guys need. Any questions on this before I switch? No.
-
-I think I'm good. So only thing is pretty straightforward. Yes. Conversion engine, there's a lot more. So I'll just kinda go through it quickly.
-
-But, like, SNS email list has the list of people that are getting the notifications. So that's, people that are getting the notifications. So that's, what's in there. These are not organized super well to explain. But here's what I was kinda saying.
-
-Like, three gig is our default size, but it's a parameter. So we can change that if needed, what file type you guys are using, source and target bucket, where the schema files are gonna be located, how far back to look for files. So we will only process files within, like, a specific window. So when well, I guess this doesn't matter because now you guys are doing SQS. Never mind.
-
-Ignore those two fields. I'll get that updated. And then the main this is what I've been discussing a lot with the mainframe team. So this is, like, how the job will be looking at the data on read. So trying to make sure that I have the correct date format, empty character, if there's a header, like, all of the things about how to read the data file properly.
-
-All of those are set in here too. But most of the other ones I would say is, like, configuration performance, and some of those behaviors, like I said, like splitting. I we have, like, a limit of how many instances you can run at once. So we'll figure out what makes sense when you guys are ready to run. So, like, mainframe team could send multiple trigger files if they wanna break up the processing.
-
-I don't know if that's gonna make sense for you guys, kind of sizing of the machine. So a lot of this is just our parameters to trigger. But from the pieces that would affect, like, you guys, I would say, like, the configuration of the source side of how the data is actually formatted so we process it correctly, target location, source location, where the metadata file is, file type. Those are the main ones. So Okay.
-
-So at the I I kind of at some point set an initial value for what we were gonna do, and then I'm gonna change it as we test and learn more. So Okay. So the file type will be obviously, it will pick up the dot z z format or any other formats if it comes across. Right? Alex, that is Yeah.
-
-So right now, I have it set to out. I originally had it to text, but then it sounded like, mainframe will be sending the out files. So I changed it to out. It'll process out and out dot g z. I can't do a comment here, but it'll do out dot g z, as well.
-
-The thing would be for that is, like, I need to make sure that the values we have to kinda do some split files, will work. We we have customers that have done both compressed and not compressed data. I think it's a little bit more tricky if it's mixed. So I gotta see what they're expecting to send. Okay.
-
-So probably we need, the data types that has been got mapped. Right? For example, in the, mainframe, we have the character and, in the path here, it is a string. Right? So that that mapping we need.
-
-Yeah. Well, I I can send I don't know if maybe you guys were on the email that I sent. The mainframe team is defining what the so this metadata field that has that file will have, like, what they defined as the schema. And then I did the mapping. I sent them what our mappings are from that schema file to spark types, what we have set, like, as a standard.
-
-So I can send that to you guys too. I don't I'm guessing I didn't send that to you. Mappings from schema to spark. I might have it open, actually. I'm doing some documentation right now.
-
-But yeah. Here. If you ignore all my other words. So right now, this is the mapping we have. So this is what we were we told the mainframe team that is expected in that schema file.
-
-So in that schema file, these are the types that they can actually write there that we would recognize. And then this is kinda how we're mark mapping it to Spark. So I also sent this to them, so they might have taken some of this into account when you guys when they when they were specifying them. But I think you guys consumption wise, you probably care about this. I don't think that's formatted super nicely for teams, but it's close.
-
-Oh, thank you. Your email. Yeah. It's the subject. There's a lot of text going back and forth.
-
-So, like, you might not have read it. But, yeah, that that's the type map. So, left being what they are specifying in their schema file. So if you wanna open their schema file and see what they specified for a certain column, that probably be the best way to do it. And then this is what we're mapping it to in Spark as it is processed.
-
-So I have couple of questions. Yeah. So, again, you know, like, in raw bucket after landing, you know, like because the conversion engine is going to work from landing to raw. So do do we have to specify the nature of folders, s three folders for the conversion engine so that they can load the data accordingly? So that's a good question.
-
-I will share how it works now and then knowing that it will change when we add the partitioning for you guys. So right now, I think you said you guys are doing, like, database segment, and then there's data files here. Let's just do out. So right now, conversion engine assumes the same structure. So organized at this current moment, when conversion engine process it, it's gonna retain whatever's there.
-
-So if you add in, like, a new prefix here, raw would match. That's not gonna be the same when we start doing partitioning. But for right now, whatever the structure is in landing is gonna be the same structure in raw for right now, if that makes sense. Oh, so partitioning like, how does partitioning impact the folder design? So I think then you guys you said when what what is it state and termination here?
-
-Oh, okay. Okay. So that could be added. So then I think that will be added. So then it would be state I think you guys used numbers and then here.
-
-I'm gonna make it up. But I think it would look more like this, afterwise after but still something we're developing. So I'm not exactly sure that this would be the case because the day the data from this would be split into whatever buckets it needs to go to. But for right now, it would match whatever's in landing. Does that make sense?
-
-Yeah. It does. It does. Because, see, the major thing is the consumption of this particular data and what I've learned from mainframe and Erwin is they are used to database segment, so it's easy for them to query the data. So Okay.
-
-That's why we are trying to move in that direction. But at the same time, you know, like, adding these partitioning type of columns also so that we can make it more meaningful, I think that will be good. Okay. And second thing is, again, you know, like, the same question that I asked you on the transfer family side that if the conversion engine is running from, you know, like, an it's just half the way and it fits, how does it take Yes. That's a good question.
-
-That makes, that's a little bit more, I would say, relevant in this case. So conversion engine, it's it will process, I would say, per file. So it it'll take if we're doing SQS, I'm gonna have a whole file list. So if we have, five files in that list or I'm gonna do three because I don't have to type that many. So then if you have three files in this list, it will try to process all of these files.
-
-That's kinda where our logs and our notifications combined with the fact that you guys also will receive notifications. So, if file by file, some of these might, work and some of these might not. So, like, if these two work but the middle one fails, like, that'll be called out in the notification. So right now, we just changed our notification. So, like, the subject line will say, like, how many files failed.
-
-So it'll be the notifications are per, like, trigger file. So this is, like, be the notifications are per, like, trigger file. So this is, like, one trigger file. So it'll send one notification, but it'll say, like, hey. One out of three files failed or one file failed.
-
-It'll say, like, within a trigger file, failed. It'll say, like, within a trigger file, how many were success or how many failed in that in that case. So in this case, you would see, like, file one parquet and file three parquet in raw. You would not see file two because it failed. So that would be where if you guys are doing any sort of processing or consumption off of it, it would kind of be in a partial state from a trigger file perspective.
-
-But, like, if this file ran and you you said, like, some records so if it was, like, a record count mismatch, like, we would not send the file to raw. So this file would not be in raw, the bad files. So anything good would still go. Anything that fails would not be in raw. So then it would be kind of up to, like, getting this if you think about, like, getting this into a state that you guys could process it, it's up to how you want the mainframe team to rerun.
-
-Because if the mainframe team reruns, like, the whole trigger file, to Arvin's point earlier, it would process this one again, it would process run everything. It sometimes, we have customers that will send, like, a new trigger file just with what failed. So then it wouldn't reprocess the other ones. Oh, so it so the e d is not going to process this five two dot out that has failed. Am I right?
-
-Yeah. It has to come now again from mainframe. Yeah. Because usually, once we get all the criteria set up, usually if it fails, there's something like, oh, maybe the schema file for this fail file is missing or something there's a, you know, extra character in the data. Usually, it needs some sort of, like, customer to to look at.
-
-So we we'll try to run it. And if it doesn't work, in that job, there's, a rerun needed of some sort. So it would be whether the rerun would be, like, the entire file again or just the piece that failed? So you're saying, Alex, they might have to resend that file too or just the trigger file? Yeah.
-
-So yeah. So they would just resend the trigger file. Okay. So so you could either resend the same trigger file or resend, like or send a new one. Only failed files.
-
-So part of it is also because, like, we we have done some things to try to help with failures. Like, sometimes we've tried to rerun the trigger file ourselves, for customers. But we found out that our customers have a variety of things that they're triggering off of data. So if they have processes that are triggered off data landing and we run it again and they're not expecting it, sometimes it causes more harm than good. So we tend to, at this point, just make sure you guys receive the notification.
-
-If we'll get all of the same notifications you do. So when this fails, there will be a notification that goes to both your team and our team. So our on call person will see that and probably be working with you already to get it but we don't want to resend it to ourselves until we talk to you to make sure there's not gonna be any, like, negative impact. We tried to do some retry logic. It just it doesn't work super well for all of our customers, so it's not not consistent right now, I would say.
-
-And it depends. Like, sometimes the mainframe team rather would send the same file, send a new one with only failed files, kinda up to them and whatever you guys want because this would overwrite the previously successful files generally. So quick question, Alex. So if we, replace the existing file because the landing bucket. Right?
-
-So if we know the notification and it, we have the failed, files. And if we place the trigger file and if it replaces, it should trigger the easy to conversion engine, right, for testing? Yeah. So whenever it was it's recent, it would it would it would, start the job again to reprocess. I guess the other thing that would probably be good to tell you guys is I'm just gonna share so you can see.
-
-So when when the trigger file is placed, since you guys own the bucket, it starts we'll have them put it in a CE trigger folder somewhere in your bucket. There could be a pack here. But there there'll be a CE trigger folder basically trying to limit what you guys are looking for s three events to. So limiting it based on the CE trigger folder and then looking for something that ends in dot trigger, that's how our queues in EDLA are set up. So then any notifications for that specific combination of, like, this location and this extension, that would trigger, the conversion engine to start.
-
-When conversion engine runs, it's going to, like, read this file, and it's gonna move it out of this, prefix. So there's it's like processed I have to look up what it's called. I think it's processed index files. It'll put it in a different folder. So it's no longer, like, in this spot.
-
-So, like, looking at s three, it'll be moved to a different spot, mainly to avoid, like, retriggering. So if if the customer needed or if the mainframe team sent the trigger file again, it would essentially be gone there. So when they placed it again, it would trigger the the job again. But basically, there's, like, the needs to run and then already process just so that conversion engine doesn't pick up the file more than expected. We'd have to figure out now that you guys are gonna do triggered where we want this to go in your in your And also, so will all of this be on the landing bucket?
-
-Because I didn't get oh, so we need to give you right access to landing also, the conversion engine. Oh. Because we didn't do that. We only did right. I mean, we only did read.
-
-So now we need both both documents and write. That's a good question. I think so. Okay. I think I think it I think it's because of the moving of this trigger.
-
-I did not think about that before because I don't think I was thinking about you guys using SQS. That's okay. My guess is it would fail on this trigger move. Yeah. Or the other thing you could do is you could add, wherever I'll I'll figure out what it's called, but you could add right for only that specific, location if you wanted to do that wherever the files are supposed to be going.
-
-Yeah. This would be landing. It's a good point. Okay. I'll have to figure out where that's going.
-
-I need to probably make some updates to your guys' flow now that we're gonna do SQS, and then we can figure out kinda where all of these need to go. And, last question is, from my side, actually. The logs, do we have access to logs, dynatrace, or something like that so that we can see that something has not, For conversion engine, I would say the logs are a lot. So access to the logs, no. And if you did, I don't think you would probably find a lot of helpful information in that.
-
-I would say the notifications that you're gonna get, would be the most helpful source of information. So that'll tell you, if it's a successful job, what are all the files processed, what are all the source and target record counts, column counts, size before and after parquet compression. So that'll have information for current jobs, and it'll also have information if anything fails. So if anything fails, there will be a notification right now. Ideally, we get that more integrated with logs and Dynatrace in the future.
-
-It just hasn't been on our list yet, to be honest. So right now, those notifications are probably the best way to know if something's wrong, and they're going to, my team's mailbox as well as that mailbox that I saw was being created. So I think I think she put in for access for you guys. Did you guys get that email about the mailbox? It is not from me.
-
-I mean, the SMS. We're getting the SMS notification. Yeah. So right now, it's going to you all as individuals. It would be, like, going forward at some point, it would be going to a mailbox.
-
-So I know when I was meeting with the whole group, it sounded like the planning team was gonna create a mailbox for you guys. Oh, yeah. We included. Yes. We included our name, so that they will will also get mailbox.
-
-Okay. Yeah. So that so it'll be all of the information will go there. So, like, I can show you, like, quickly what our mailbox looks like. I don't know if we have anything out here.
-
-That's not the best. I'll pick a success notification. So yeah. So if it's successful, it'll show, kind of those counts like I was talking about, and I kinda sent an an example email. But then we don't have any failures in prod right now, so that's good.
-
-Here, like, this is so, like, this is the transactional team, so I can tell on Saturday, they had a failed file. So it'll tell you, like, hey. How many fails of files failed? The email still has the counts for all the files that were successful. And then one of this one is the one that failed.
-
-So that one had to be rerun. This is like if you send a blank notifications. So it'll say, like, it's environment and then test success or failed is what's right after it. And it'll have your guys' ID in it. But we have them we have email rules kinda set up at our box.
-
-So our on call is monitoring this all the time to look for any failed jobs. Oh, sorry. Can I ask one more question? Yeah. Sorry to, very over time.
-
-But, because I think when we were in a meeting with the mainframe team, they were planning on sending even the blank files. So would that cause any problem? What do you mean blank files? Just like no data in it. They'll but they will still be sending you know, let's say they will send data file out three, but it has no data inside it, but they will still send it.
-
-That's a good question. So maybe we should let them know that That would be a that would be a good one if we could test. If we could create, like, a blank file, we could run it through and see what happens. Okay. I I think if you guys have these kinda edge case ideas like this, this would be really good things to test.
-
-So, like, if you're concerned about, like, an empty file or, like, anything you guys wanna see what it does, I think we should probably probably test some of those. I don't think it'll cause a problem. I'm not exactly sure what I think it'll do, but it might just make an empty file in parquet. I'm not I'm not exactly sure. That or it could throw an error with the schema because it's empty.
-
-I'm honestly not sure. I don't know if somebody's tried to do that. Okay. That's something we might need to discuss with the main team now. Yeah.
-
-I don't necessarily think it would be a problem. The easiest way, honestly, to find out, just with how some of the conversion engine code is is just to try it. So if if there's a file that you can send blank that we can use or put one in s three, and then I can run it and see see what it does. But some of the conversion engine code is a little complex and hits different cases. So I would I would wanna see what it does for sure.
-
-I don't know if it would be a problem. We'd have to find out. But maybe we shouldn't be processing empty files anyway. I I don't know why we would be spending and processing empty files. That is a good question, like, in terms of why you would want to do that.
-
-But and I just like extra processing for no reason. But, yeah. But Maybe I could wanna talk about them about, like, why they would want to send it. I'll I'll bring it up on our weekly meeting again. Okay.
-
-That's cool. Sure that we can send it. Yeah. You're right. Because I don't know if there's much value in processing empty ones.
-
-Okay. So I owe you guys a a couple things that I think I have in the chat of what I I need to find information about. I can get you the diagrams, as well. And then, I think if we have more further questions after this, I'd be happy to do another meeting if there's more that we need to talk through. But I can send you kind of the information, that we talked about, like Splunk, Dynatrace, some of the partial files stuff.
-
-I can find that and send it to you. And then if we need more discussion, happy to do that. Sure. Thank you, Syed, for scheduling this meeting. See, it's a very important thing to understand and learn about EDE.
-
-And, Alex, thank you very much. You're welcome. Detailed knowledge, you know, like, so that we can learn. Probably next month, yeah, we may need again a repetitive course on ED services. Yeah.
-
-Or, so we may again invite you so that you can enlighten us. So I appreciate you guys taking interest because I think this level of detail is not something that a lot of our customers really care about. They care about the data being transferred, but I think you guys are trying to make a lot of informed decisions and taking interest and trying to understand how that works and how that impacts your guys' your your work, I think, is important. So happy to share. And you guys are making me we're we're also kind of in the middle of some new design work, so trying to understand how our current code works even beyond the level that I know it.
-
-So this is helping me figure out areas where I need to research a little bit more too. So it's it's very helpful, and I'm glad you guys are taking the time to ask questions. So Well, thank you very much, Alex. Thanks, everyone.
-See if I can I was like, I know we sent one? I just don't remember which one we sent. See if this one's gonna have the information I'm looking for. We'll start with this one just because I think it'll have most of the information, and then, I can find a different one if it's not specific enough. So were you looking for our transfer family and conversion engine?
-
-Just one of them? Yeah. The first one is a transfer family, and the next, we'll just work on the conversion engine. But we need, yeah, transfer family thing. Yeah.
-
-This transfer family, I would say this is probably pretty updated and specific. So you guys are mainframe side. So the source here would be mainframe. The protocol that transfer family uses for the data movement is the SFTP. So there's that authentication with the SSH key, and then the script that actually the JCL script that the mainframe team is running to actually move the data.
-
-It's going through, like, our AWS connections between the data center and AWS, which PCAT has set up all that Direct Connect, deal. And then this is our our RunDMC data ingestion account, which has that SFTP server running. So in this case, like, the mainframe is the client in the SFTP connection, and then the server is what we manage. So we manage the server and then set up your guys' like user on that server to have, a specific IAM role that allows access to your bucket, access to KMS, so set that up with your transfer family users so that kinda scopes the permissions, to exactly what you guys need access to. And then Arvin and team, you guys have updated it to give that role access to your guys' bucket, in this account.
-
-So there's some some cross account access there. And then, there's a route 53 DNS alias in front of the server endpoint. So it's a VPC endpoint, but we have a alias in front of it. So that is our, one of the steps we added to help with Doctor. Right now that alias is pointing to US East 1 with our current availability, we only have a server actively running in US East 1 because the transfer family server is charged all the time whether it's being used or not.
-
-There's no really, like, stop mode. It's either created and being charged or destroyed. So our current availability, that would be part of our recovery is to stand up the server, load all the users, and then, flip the alias, if there was a true, like, outage. Other than that, anything else, like, Doctor wise, the user in the role, because their IAM will be global, so you'll have access, to USC's bucket. And then we have previously been adding it for EDLA specifically, but if you know what your naming standards are gonna be for your west bucket, we can ensure that that access is also in place, if you were ever to to need to transfer data to the west bucket.
-
-Are you guys gonna have, your bucket set up with replication, cross region replication? Yeah. We are planning to do that one, Alex, for the cross region, replication as well, in the coming days. So possibly, you you will be taking care on, from your end that, once there is something happens or how this strategy works. In fact, is that the active active thing or active passive or, is that going to be transferred the data first to The US East 1?
-
-And if there is any failover happens, then only it will go to the other region. How that actually configured in this, setup? So for our team, it's it's all about where the data is being replication turn on, in production and then, I believe, a particular test lane. So if you were to send data to production you were to send data to production US East 1 using transfer family, the data would be replicated to West. Like, automatically, it would be more like if there's a disaster and you needed to send data to West because East is unavailable, then we would need access.
-
-Like, we we would have that access set up to be able to send data to West. So we don't do anything with our team, actually rep it replicating the data. It's just access to both regions, for that transfer. Does that makes any sense? Yeah.
-
-Alexa, I think Arvin has some question here. Yeah. Yeah. I Sayedra, I I thought we said that for the landing bucket, we're not gonna replicate because it's only temporary. Right?
-
-Okay. We're gonna replicate the raw because that's where our data would be. But I don't think we'll do that for the landing. Okay. That makes sense.
-
-It seems like a lot if it's only gonna be there temporarily. Yeah. And just your team. And if ever, you know, worst case, they can rerun our if we haven't deleted the mainframe job, then we could still rerun it. Right?
-
-Mhmm. Yeah. So then you know. Doctor wise in that case, it it would be, any any time there like, if there's a complete, like, east outage, you would be sending the data to west, landing instead. So If if we need to to run the main Yeah.
-
-If you needed to run during the PR. Outage. Right. Exactly. Which is I hope we don't plan to do.
-
-There's probably enough other things going on that the data movement is probably not in the especially for what you guys are using this data for. That's probably not the highest priority thing going on. But yes. So does that help with the transfer family questions? Yeah.
-
-Unless we don't have to worry about replicating that. Right? So Yeah. I think we're good with that. Okay.
-
-Yeah. Because transfer family for your guys is would only in interact with landing. So if you're not replicating that, then you should be pretty set. Yeah. So we understand that there is, if there is any, anything, in either case, the file has been got transferred and, looks good, and it's actually got landed in the landing bucket.
-
-So or if there is any failures has happened in between, right, if the, if the file is actually not got, passed through the landing bucket. Is there any failure strategies in that, case, Alexis? There's something or test Like, if there's an error during the transfer? Transfer. Yeah.
-
-So in this case, since, I know it's not your guys' specific team, but it it would be the mainframe team in this case since they're, like, responsible for, creating and scheduling and running that job, they would see the errors on their side if there is something wrong with, like, the data transfer. We would probably get it through our logs too, assuming it made it to the server. So say, like, there's an error in their job where it wasn't able to connect, like, we won't be able to see that at all because it's on the mainframe side. But anything that's able to make it to our server that's an error, we'll see it in our logs. Since it's a lot of customer, driven jobs, we we usually pay attention if there's, like, a trend.
-
-If there's, like, a bad SSH key, we assume somebody changed the key quickly or like, if it's just a once error, there's usually not any action because it's whatever this job is. If there's persistent failures, then we usually will reach out to, like, the producer team. But all of the errors, like, on data movement would be from the the mainframe team would see them for transfer handling. So it would be having having, like, their logs be able to tell you guys if data is not successful. Okay.
-
-I would say that probably doesn't happen very often too. Usually, honestly, once we get transfer family set up, there's usually not a room for errors. I would say the main things that usually, cause errors are, like, somebody changes the s three bucket permissions or KMS permissions that you set up. Like, if you change something on your policies in AWS that break our access, that usually call causes a problem because the permission would be denied. Or if, like, mainframe did something with the SSH key to, like, change the key and they didn't tell us.
-
-It's basically and as long as once it's set up, nothing should be wrong. But it does happen occasionally. But it's usually, like, something in the environment change, not, like, anything wrong particularly with transfer family. We do have, like, monitoring for the the server itself. So we have a health check job that runs every fifteen minutes.
-
-So if something were to happen to the server, we would get alerted about that, because that would kinda impact all of our customers. But usually, transfer family is pretty low maintenance once it's set up. So, Alex, I have a question. Yeah. So let's say there is a file, you know, like, which has got 50,000 records coming from mainframe.
-
-You know? And now around 40,000 records every single day when the job fails. So in that situation, like, how does it really work? Is it that the remaining 60,000 will be pulled out? Like, what will be the approach to see the data integrity and the nature of records that we are going to receive in the landing bucket?
-
-So you're saying, like, a file where not the entire file is transferred? Mhmm. It's a really good question. I don't know if I've ever seen that happen To be able to tell you exactly what it does, I would assume that the SFTP would throw an error because it would be it it transfers, like, per file. So I feel like if you got partially through a file and something happened, you would get some sort of error.
-
-But I don't know if I've seen that. I can check to see if anybody knows, but, I would say that one's probably not very common. I would I would assume that would be on the mainframe side. I can I can see if I can find anything that would tell me a little bit more for sure? Okay.
-
-Okay. Thanks. Yeah. Because, see, if we are trying to load the same data in a duplicated way in landing, you know, like, that's what is going to happen. So, I do not know that What do you mean?
-
-Oh, so so the records that were popping up from mainframes Mhmm. Coming back to the same thing, you know, like the the way I explained that out of, hundred thousand, 40 thousand have been moved to the landing bucket. Let's say the file has been picked up and suddenly something happens, and 60,000 records are still remaining to be processed from mainframe side. How will that work? I would I would think if we're I I think for data movement, they the files wouldn't be moved until the mainframe team has all of the data that they're looking to send at that time.
-
-I could be wrong. It would be it depending on how they're doing the export and the the actual job. All or nothing. Right? There's no partial.
-
-Yeah. Yeah. That's what I'm trying to think through. Like, if the mainframe team is sending it like, if they have all of the files they're looking to send I mean, if they had multiple files to send in a particular job and only a couple of them worked, that you would get that error with which files were able to transfer and which ones weren't. I just I don't know much within a file if there would there would be an issue.
-
-I don't I my guess is the file would not be uploaded. I don't think you would get a partial upload Okay. Of the file. Okay. So, like, the way Arvin just mentioned, is it it is either all or nothing?
-
-That might be the strategy that you've done? That's my understanding. I can look into how the SFTP works to see if there would be a reason where there would be a partial upload, but my guess is file wise, it would be all or nothing of whatever they're sending. Okay. Okay.
-
-Thank you. Does that help? Yeah. It does. Yeah.
-
-Like, if you can find this out, you know, like, that would be good for us. I'll see if I can find some dark or something. You guys ask the good questions. I'll exam a question to so let's say, like, you know, they have 10 files and five failed, and they rerun the job. You will you will override the data that's already been transferred, I think, in case they rerun the entire job.
-
-If they rerun the entire job, yes. It would be overwritten. It will overwrite. Okay. Thank you.
-
-Okay. One more quick question, Alex, that, we have, the max size of five terabyte. Right? So, what is the strategy that, you people have been implemented in terms of file sizes that, this is the standard that we are using. And even if you, we even, the mainframe team is sending a huge file, you people are chunking some between and then transferring the data or, any any file size strategies has been got implemented, Alex?
-
-So for the file size limit, the five terabytes comes from s three. So the limit for the max a single file can be in s three is five terabytes. So there's there's nothing we can really do to get around that one. It's the most a single file can be is gonna be five terabytes. I wouldn't necessarily recommend trying to send a five terabyte, file just because of, I would say, like, the network connection wise.
-
-I don't know how long that would take, in our environment. I don't know if anybody's tried to send one. But that that's coming from an s three limit. So in terms of, like, the file size, that's the max that Transfer Family can move because that's the max that the storage location of s three will allow. That being said, like, Transfer Family is just moving the files.
-
-It's it's just a straight move. So whatever they're coming in as is what we're moving. So if it was five terabytes or less, I would assume that we would be moving it. If it's more than five terabytes, I would think you would get some sort of error. I don't know if it would be a time out or if it would be able to recognize that ahead of time.
-
-I haven't heard us be talking about the data on this scale. Do we expect higher than five terabytes per file? I haven't really gotten the size from the mainframe team yet. But this would be, like, per file. So if they're exporting it by state, by I don't remember what they're doing.
-
-Database segment after each state is migrated. So it would be whatever that export that they're doing that they're trying to transfer. It'd be five five terabytes. So is that, like, something I should be talking to the mainframe team to see if they're concerned about that limit? No.
-
-It's a kind of a generic question, but, yeah, it implies to, those data storage as well that get, get transferred to the AWS. So yeah. Yeah. We're not, like, doing any additional checking or splitting or anything. It would be I'm I'm guessing it would fail.
-
-I don't think we've tried it. So it it would be the responsibility of the consumer. So in this case, it would be our mainframe team to make sure that the the data size for each file doesn't ex exceed that five terabyte. Right? Yes.
-
-Yeah. So usually, what we would do is we would, it would be sharing with the producer that the files need to be in those sizes or less. So So what about, zip? So because you said that the limit is on the s three. So if you expanded that zip file, are you gonna so so what if the expanded file is more than that pipe terabyte?
-
-Which we Transfer family, we're not gonna, unzip any files. Transfer family, if it's, we prefer gzip. So if it's g zipped on the mainframe, we'll be moving it, and it'll be landed g zipped. We don't change any of that Okay. For transfer family.
-
-It would be more, conversion engine when it gets if if we have compressed files, conversion engine will unzip them. So it would be a higher size for that. Okay. I'd like one question, Alex. So, are there any logs being captured from the AWS transfer family into the CloudWatch for monitoring?
-
-Or like, let's say, any activity where we want to trace, like any failed login attempts or anything? So those information will be available in the CloudWatch logs for this monitoring? We have CloudWatch logs on the server. And then from there, you like, at least we are able to see, like, per user what that activity is. All of those logs are also being sent to Dynatrace and Splunk.
-
-So, like, we have a Dynatrace dashboard. Are you so you guys would be looking to do, some potential things with those logs? Yeah. So, again, like, any any failure. So, again, like, we we if you want to backtrack and to see on which data file sent, so what the content in it, and let's say if we want to backtrack and, do the tracing.
-
-So we just want to know whether we if the logs is available or not. But Yeah. So the the logs are available in our account, and they're being forwarded to Splunk and Dynatrace, which is a little bit, I would say, wider access. So you should be able to find them in those tools. I don't think we we have probably more transfer family alerting, but there's not a great way to filter it by your individual user right now.
-
-Maybe something that we can get to or put on our backlog at some point. I could probably find one, Arvin. I don't think I have one off the top of my head, but I can find one. I know at least what we're using on Dynatrace. I can find the Dynatrace dashboard too and send you the link so you could take kind of a look.
-
-Yeah. Even even for the Splunk query also, like, we just want to know the what is the exact index we need to search, Alex. Oh, yeah. I can I can give you that index text because I know you'll need that? Our stuff is going to Splunk.
-
-I did an initial couple searches, like, getting that enabled, but I would say, like, our team doesn't really use the Splunk for anything. Most of our stuff is on Dynatrace for, monitoring. So I can give you, like, the first query that I have that I know will search, like, that particular log group, and then anything else would probably be figuring out what's kinda similar to Dynatrace. So I'll I'll add that to my list. So Splunk Query and Dynatrace dashboards.
-
-But that would be probably the easiest way right now to get the logs. Yeah. And also one last question, Alex. So is there any checks will be performed on the Direct Connect connection? I guess, is there any health checks will be performed from your team to monitor whether the connection has been established or Specifically for Direct Connect or for the transfer family server connection?
-
-Specifically for Direct Connect. That I would have to ask. You would have to ask PCAT. PCAT manages the connection between, like, State Farm on prem and AWS. So this is all managed by PCAT.
-
-It's just when we're going through from the mainframe side, like, in a State Farm Digest Center to AWS, that's being managed through that PCAT Direct Connect setup. So that would probably be more questions for I can see if I can get you a name. It would be, like, their networking group, but if you have specific questions. Maybe I'll make a note of it because that the key. We will have to get the files out of the connection.
-
-We're not established and has been off during the time, then there'll be a chance of Yeah. I would say, like, if if Direct Connect is down between State Farm and AWS, you'll find out about it because that'll break a good majority of everything. But it's just more like our connection is going going through that. But I can see if I can find you a networking contact too and PCAT. Yeah.
-
-Thanks. That's good to be. I know who I know who our normal person is, but I'm pretty sure I have two, but one of them is just retired. So I need to figure out who is the who is the new one. So, okay, any other, I guess, questions for now?
-
-So Splunk Dynatrace and PCAT networking is on my to do list. Oh, partial file uploads. That's the other one. K. I'm gonna make the notes so that I remember after this meeting what we were talking about.
-
-Anything else transferred to them? Yeah. Not not for not for you. I'm the expert for my team, you know, like, so we, I think our team has already decided the s three folders that we have to have in, landing buckets. Am I right, team?
-
-Yes, David. Okay. Okay. So with each extract that we are going to have for a state or table, I think we do have now a fixed type of a thing that, okay, this is how we are going to store the data, in folders. So that's good.
-
-So, because do we have to provide that information to transfer family or, like, it can be automatically taken care of? So is it that those parameters need to be provided to Alex? I think we'll be yeah. Yeah. Go ahead.
-
-Those are set on the mainframe jumps. I think access wise, I could be wrong. I think we gave you guys the entire bucket Right. From our side. Is that what you provided on your We gave you an access to the impact bucket.
-
-Okay. Yeah. So yeah. But, the destination is defined on the Mhmm. On the JCL that they run.
-
-Yeah. So the name they the the naming convention also, the file name, things like that, would be defined on the mainframe site. Okay. K. We're kinda halfway through.
-
-Do we wanna switch to conversion engine? Because I think that one probably will have some discussion. Chris found my diagram for me. Thank you, Chris. Yeah.
-
-Yeah. I'm gonna drop I'm gonna drop by 02:30 off. Okay. I'll let you know if there's anything cool. Okay.
-
-Thanks. Oh, okay. Thank you, Chris. Let me see if that's this. Okay.
-
-This one's got a little bit of our internal workings of DICE, kinda put in it. So I will say, like, we have it's called DICE. It's the data ingestion and conformance engine. Basically, we just have it built to kind of manage does this have a good picture? This is probably a better picture.
-
-Basically, we have it we we built a a service for our team at this point, that helps us manage customer configuration. So we probably have, let's say, roughly 60 different transfer family customers, and they used to be managed through Terraform. So as our next evolution of that, we have this service that has several Lambdas that help us create the needed, AWS components for each flow, keep track of updates, different things. So Dice is what's gonna create, like, all of the pieces for each flow. So for transfer family, transfer family DICE's only enablement.
-
-So transfer family, we're gonna load the information. It's a it's a JSON file config that we upload into DICE, and it puts it in a DynamoDB table. And then it'll create, those components that I was talking about, like your transfer family user role, your policy, your SSH keys, the user. Like, everything you need for your job is gonna be created by transfer family when it's, enabled. And so one of our developers on our team already did that.
-
-And then for Transfer Family, that's it. So it's just setting that up. It's setting up permissions, and then you guys control the execution. For conversion engine, it's why we started doing these boxes in our diagram. So enablement, is really where DICE is involved for, transfer family.
-
-But for conversion engine, there's more arrows kinda going over these two lines. So, basically, enablement still the same. So that creates that SNS topic that I got, your guys' subscriptions to. It creates if it's scheduled, it would create an event bridge rule, but you guys aren't gonna be scheduled. You guys are gonna have an SQS trigger, so it sets up that trigger to our Lambda, to start the job.
-
-So, still creating infrastructure needed for conversion engine. But then as far as, like, when conversion engine runs, we have, have, some Lambdas that will launch an e c two. And then the e c two is, like, the actual conversion job. So we use, a series of scripts. It's, Python mixed with Shell.
-
-Python is PySpark. So the most of the conversion is actually done with PySpark, and then having some other scripts kind of around that to kinda orchestrate the rest of the thing. So getting a file list, sending notifications, things like that. So when the job runs, if you guys since you guys decided on doing SQS, this is not the most updated diagram. Let me move this arrow.
-
-So SQS, the notification would for the s three landing of that trigger file would come. It would go into the queue. The queue would trigger our launch Lambda, and then it would start the EC two to do the job. So when that runs, it'll go through that file list that was provided, do all of the conversions, move them, read the file in from source, do the conversion, write it to destination in parquet. This is one view of how conversion yeah.
-
-Let I can send either the I can I can find the file links? You should have access to them, so let me see if I can send them. So, Alex, I have a question. Yeah. So this SQS concept is also applicable to the data that we are going to get from mainframes also.
-
-Am I right? Yeah. So so the these are the kinda so So SQS is applicable to both the side. Am I right? That's what I'm trying to confirm.
-
-Yeah. So that's so the the SQS, like, queue in this case, this queue and, like, the this is supposed to we've generalized it. Like, the s three event notification to the queue, that would live in your guys' account right now. So this is probably in some other account. The rest is in our account.
-
-So, s three event going in the queue, and then that queue triggers the Lambda in our account. The piece that kinda connects it to the mainframe is the trigger file that's placed is, like, the index file, like, list of all of the files that conversion engine should process. So when when the mainframe file, like, writes the trigger file, they'll write, the set of files that they transferred that need conversion. And then when that file is uploaded to s three, it would kick off the job. So I don't I'm not really good with, typing, while or draw.
-
-Io while sharing. So I'm just gonna type in this. But, basically so the, the main frame team would transfer, like, the data files using transfer family, their their JCL transfer job. And so let's say it's file one. You guys have out files.
-
-File two. So in which the first step would be to transfer the data files. And after that, they would have the trigger file or index file. We kinda use, I would say, both. The file itself would be d v I l m.
-
-Something something like this. It would be like a trigger that has the name of your guys' flow and conversion engine. And then inside this file, it would have that list that they want converted. So from a mainframe perspective, they need to create this file, and then they would use transfer family to send that trigger file to a specific spot in s three that you guys set up the notifications. Okay.
-
-So Alright. Then SQS queue conversion engine. That's probably the closest order. So so they would transfer the data files. They would create this trigger file.
-
-They would send this trigger. So this is all mainframe side. This piece with the s three eventing the queue and then, like, starting conversion engine, this is on the AWS side, if that makes sense. That's kinda where the divide is. So there's a little bit work of work on the mainframe side to get the trigger file created and send it, and then to, like, receive that event of that trigger file being Yeah.
-
-Yeah. I'm taking notes here. Okay. Just copy paste this, whatever you did Yeah. So that on the chat window here.
-
-You can do that. Thank you. And One of my teammates does this all the time. I was gonna say, we're also gonna update our technology to reflect this. Because right now, that's that's what we're making.
-
-It's the, we're updating our tenant to process that SQS event to send to Okay. The EC two Lambda. Okay. Yeah. So the Lambda role that I gave you is for I can't draw.
-
-It's for this Lambda. This is for our API, so you can kind of ignore this right now. But this is this is the where that queue would trigger. It would trigger the the e c two or the Lambda to launch the e c two. And then this e c two job for you guys, you guys are doing, like, batch jobs.
-
-So the e c two will be launched, at the when it receives that event from the queue, it'll be launched. And then when it's done processing all the files, it'll terminate. So it runs as long as it needs to, and then it's gone. So the e c two itself is only for your guys' job. But this is where when you were talking about, like, compressed files, the this would do some of the unzipping of the files, and it would split files.
-
-So right in regards to splitting files, conversion engine, our default is usually three gigs, like, before conversion. So if the file is bigger than three gig, then we would split it, generally because three gig, produces a parquet file that has been, I would say, at least historically optimized for some different consumption tools. But that's a value that we can adjust. So if the if we want if you guys want a little bigger parquet file, those are some parameters. I have it set to three right now.
-
-But I think once we have a better idea of how big your files are and kinda what you're looking at what's the consumption tool tool you guys are gonna use, Athena? Yes. Athena by Smart. Okay. Okay.
-
-So that also helps so that I can see if there's a value. But we usually start with three gig. So then if a file is bigger than that, it would split it, so there would be multiple outputs. And I think that was on my list. Was it you guys that wanted, like, the part file naming?
-
-I'll add that to my list too. Thank you guys. One of the part files. But it was essentially instead of having, like, one source file and one output file in Parquet, it would be one source file and then, like, a similarly named but sequence number on the end when it's split. So if it's file one dot out, it would be file one zero one, file one zero two, file one zero three, whatever that standard is.
-
-And I can find that that naming standard. So, Alex, there's that would be a general question that, for in the beginning, right, you will be taking the JSON format. Right? That, the parameters and all. So can you give us, some basic parameters that you have been put across in the specific to our use case?
-
-What exactly the parameters that has been used? Yeah. I can show you. I don't know if it's super it's gonna be super helpful for you guys. Most of it's on how to read the source files.
-
-So that's what I've been going back and forth with mainframe a lot to figure out how the source file is going to be written, like, what the different characters they're going to be using. Let me show you real quick. I can pull it up. Yeah. DBILM.
-
-Okay. So this is probably a little specific. I don't know that other customers usually ask. Transfer family is pretty simple. This top is basically all the information you provided on the form.
-
-The form number, what department you guys are from, contact list, all my ID, all data sensitivity, all of those kinds of things that we asked on the form. The additional config for transfer family, setting that home directory. So this is where when you do the SFTP connection, the first place that you go, bucket with prefix list is all the places you have access to. So, like, right now, I can tell that you guys don't have access to West. So, if you guys wanted access to West, I need to add that.
-
-But, this would set like, for home directory wise, it would be when you connect, to our transfer family server in East, you would be in your East bucket. If we had our West server up, you would connect to West, assuming there's some sort of disaster, meaning you can't connect to East. But then in terms of, like, what you have access to, you guys would have access to either bucket. So that's probably how this would look if I did it correctly. It has the, the transfer family public keys and then our server ID.
-
-Right now, it's always the same server for us and then where you guys are coming from. So you guys are coming from mainframe. So transfer family, configuration, pretty straightforward for what you guys need. Any questions on this before I switch? No.
-
-I think I'm good. So only thing is pretty straightforward. Yes. Conversion engine, there's a lot more. So I'll just kinda go through it quickly.
-
-But, like, SNS email list has the list of people that are getting the notifications. So that's, people that are getting the notifications. So that's, what's in there. These are not organized super well to explain. But here's what I was kinda saying.
-
-Like, three gig is our default size, but it's a parameter. So we can change that if needed, what file type you guys are using, source and target bucket, where the schema files are gonna be located, how far back to look for files. So we will only process files within, like, a specific window. So when well, I guess this doesn't matter because now you guys are doing SQS. Never mind.
-
-Ignore those two fields. I'll get that updated. And then the main this is what I've been discussing a lot with the mainframe team. So this is, like, how the job will be looking at the data on read. So trying to make sure that I have the correct date format, empty character, if there's a header, like, all of the things about how to read the data file properly.
-
-All of those are set in here too. But most of the other ones I would say is, like, configuration performance, and some of those behaviors, like I said, like splitting. I we have, like, a limit of how many instances you can run at once. So we'll figure out what makes sense when you guys are ready to run. So, like, mainframe team could send multiple trigger files if they wanna break up the processing.
-
-I don't know if that's gonna make sense for you guys, kind of sizing of the machine. So a lot of this is just our parameters to trigger. But from the pieces that would affect, like, you guys, I would say, like, the configuration of the source side of how the data is actually formatted so we process it correctly, target location, source location, where the metadata file is, file type. Those are the main ones. So Okay.
-
-So at the I I kind of at some point set an initial value for what we were gonna do, and then I'm gonna change it as we test and learn more. So Okay. So the file type will be obviously, it will pick up the dot z z format or any other formats if it comes across. Right? Alex, that is Yeah.
-
-So right now, I have it set to out. I originally had it to text, but then it sounded like, mainframe will be sending the out files. So I changed it to out. It'll process out and out dot g z. I can't do a comment here, but it'll do out dot g z, as well.
-
-The thing would be for that is, like, I need to make sure that the values we have to kinda do some split files, will work. We we have customers that have done both compressed and not compressed data. I think it's a little bit more tricky if it's mixed. So I gotta see what they're expecting to send. Okay.
-
-So probably we need, the data types that has been got mapped. Right? For example, in the, mainframe, we have the character and, in the path here, it is a string. Right? So that that mapping we need.
-
-Yeah. Well, I I can send I don't know if maybe you guys were on the email that I sent. The mainframe team is defining what the so this metadata field that has that file will have, like, what they defined as the schema. And then I did the mapping. I sent them what our mappings are from that schema file to spark types, what we have set, like, as a standard.
-
-So I can send that to you guys too. I don't I'm guessing I didn't send that to you. Mappings from schema to spark. I might have it open, actually. I'm doing some documentation right now.
-
-But yeah. Here. If you ignore all my other words. So right now, this is the mapping we have. So this is what we were we told the mainframe team that is expected in that schema file.
-
-So in that schema file, these are the types that they can actually write there that we would recognize. And then this is kinda how we're mark mapping it to Spark. So I also sent this to them, so they might have taken some of this into account when you guys when they when they were specifying them. But I think you guys consumption wise, you probably care about this. I don't think that's formatted super nicely for teams, but it's close.
-
-Oh, thank you. Your email. Yeah. It's the subject. There's a lot of text going back and forth.
-
-So, like, you might not have read it. But, yeah, that that's the type map. So, left being what they are specifying in their schema file. So if you wanna open their schema file and see what they specified for a certain column, that probably be the best way to do it. And then this is what we're mapping it to in Spark as it is processed.
-
-So I have couple of questions. Yeah. So, again, you know, like, in raw bucket after landing, you know, like because the conversion engine is going to work from landing to raw. So do do we have to specify the nature of folders, s three folders for the conversion engine so that they can load the data accordingly? So that's a good question.
-
-I will share how it works now and then knowing that it will change when we add the partitioning for you guys. So right now, I think you said you guys are doing, like, database segment, and then there's data files here. Let's just do out. So right now, conversion engine assumes the same structure. So organized at this current moment, when conversion engine process it, it's gonna retain whatever's there.
-
-So if you add in, like, a new prefix here, raw would match. That's not gonna be the same when we start doing partitioning. But for right now, whatever the structure is in landing is gonna be the same structure in raw for right now, if that makes sense. Oh, so partitioning like, how does partitioning impact the folder design? So I think then you guys you said when what what is it state and termination here?
-
-Oh, okay. Okay. So that could be added. So then I think that will be added. So then it would be state I think you guys used numbers and then here.
-
-I'm gonna make it up. But I think it would look more like this, afterwise after but still something we're developing. So I'm not exactly sure that this would be the case because the day the data from this would be split into whatever buckets it needs to go to. But for right now, it would match whatever's in landing. Does that make sense?
-
-Yeah. It does. It does. Because, see, the major thing is the consumption of this particular data and what I've learned from mainframe and Erwin is they are used to database segment, so it's easy for them to query the data. So Okay.
-
-That's why we are trying to move in that direction. But at the same time, you know, like, adding these partitioning type of columns also so that we can make it more meaningful, I think that will be good. Okay. And second thing is, again, you know, like, the same question that I asked you on the transfer family side that if the conversion engine is running from, you know, like, an it's just half the way and it fits, how does it take Yes. That's a good question.
-
-That makes, that's a little bit more, I would say, relevant in this case. So conversion engine, it's it will process, I would say, per file. So it it'll take if we're doing SQS, I'm gonna have a whole file list. So if we have, five files in that list or I'm gonna do three because I don't have to type that many. So then if you have three files in this list, it will try to process all of these files.
-
-That's kinda where our logs and our notifications combined with the fact that you guys also will receive notifications. So, if file by file, some of these might, work and some of these might not. So, like, if these two work but the middle one fails, like, that'll be called out in the notification. So right now, we just changed our notification. So, like, the subject line will say, like, how many files failed.
-
-So it'll be the notifications are per, like, trigger file. So this is, like, be the notifications are per, like, trigger file. So this is, like, one trigger file. So it'll send one notification, but it'll say, like, hey. One out of three files failed or one file failed.
-
-It'll say, like, within a trigger file, failed. It'll say, like, within a trigger file, how many were success or how many failed in that in that case. So in this case, you would see, like, file one parquet and file three parquet in raw. You would not see file two because it failed. So that would be where if you guys are doing any sort of processing or consumption off of it, it would kind of be in a partial state from a trigger file perspective.
-
-But, like, if this file ran and you you said, like, some records so if it was, like, a record count mismatch, like, we would not send the file to raw. So this file would not be in raw, the bad files. So anything good would still go. Anything that fails would not be in raw. So then it would be kind of up to, like, getting this if you think about, like, getting this into a state that you guys could process it, it's up to how you want the mainframe team to rerun.
-
-Because if the mainframe team reruns, like, the whole trigger file, to Arvin's point earlier, it would process this one again, it would process run everything. It sometimes, we have customers that will send, like, a new trigger file just with what failed. So then it wouldn't reprocess the other ones. Oh, so it so the e d is not going to process this five two dot out that has failed. Am I right?
-
-Yeah. It has to come now again from mainframe. Yeah. Because usually, once we get all the criteria set up, usually if it fails, there's something like, oh, maybe the schema file for this fail file is missing or something there's a, you know, extra character in the data. Usually, it needs some sort of, like, customer to to look at.
-
-So we we'll try to run it. And if it doesn't work, in that job, there's, a rerun needed of some sort. So it would be whether the rerun would be, like, the entire file again or just the piece that failed? So you're saying, Alex, they might have to resend that file too or just the trigger file? Yeah.
-
-So yeah. So they would just resend the trigger file. Okay. So so you could either resend the same trigger file or resend, like or send a new one. Only failed files.
-
-So part of it is also because, like, we we have done some things to try to help with failures. Like, sometimes we've tried to rerun the trigger file ourselves, for customers. But we found out that our customers have a variety of things that they're triggering off of data. So if they have processes that are triggered off data landing and we run it again and they're not expecting it, sometimes it causes more harm than good. So we tend to, at this point, just make sure you guys receive the notification.
-
-If we'll get all of the same notifications you do. So when this fails, there will be a notification that goes to both your team and our team. So our on call person will see that and probably be working with you already to get it but we don't want to resend it to ourselves until we talk to you to make sure there's not gonna be any, like, negative impact. We tried to do some retry logic. It just it doesn't work super well for all of our customers, so it's not not consistent right now, I would say.
-
-And it depends. Like, sometimes the mainframe team rather would send the same file, send a new one with only failed files, kinda up to them and whatever you guys want because this would overwrite the previously successful files generally. So quick question, Alex. So if we, replace the existing file because the landing bucket. Right?
-
-So if we know the notification and it, we have the failed, files. And if we place the trigger file and if it replaces, it should trigger the easy to conversion engine, right, for testing? Yeah. So whenever it was it's recent, it would it would it would, start the job again to reprocess. I guess the other thing that would probably be good to tell you guys is I'm just gonna share so you can see.
-
-So when when the trigger file is placed, since you guys own the bucket, it starts we'll have them put it in a CE trigger folder somewhere in your bucket. There could be a pack here. But there there'll be a CE trigger folder basically trying to limit what you guys are looking for s three events to. So limiting it based on the CE trigger folder and then looking for something that ends in dot trigger, that's how our queues in EDLA are set up. So then any notifications for that specific combination of, like, this location and this extension, that would trigger, the conversion engine to start.
-
-When conversion engine runs, it's going to, like, read this file, and it's gonna move it out of this, prefix. So there's it's like processed I have to look up what it's called. I think it's processed index files. It'll put it in a different folder. So it's no longer, like, in this spot.
-
-So, like, looking at s three, it'll be moved to a different spot, mainly to avoid, like, retriggering. So if if the customer needed or if the mainframe team sent the trigger file again, it would essentially be gone there. So when they placed it again, it would trigger the the job again. But basically, there's, like, the needs to run and then already process just so that conversion engine doesn't pick up the file more than expected. We'd have to figure out now that you guys are gonna do triggered where we want this to go in your in your And also, so will all of this be on the landing bucket?
-
-Because I didn't get oh, so we need to give you right access to landing also, the conversion engine. Oh. Because we didn't do that. We only did right. I mean, we only did read.
-
-So now we need both both documents and write. That's a good question. I think so. Okay. I think I think it I think it's because of the moving of this trigger.
-
-I did not think about that before because I don't think I was thinking about you guys using SQS. That's okay. My guess is it would fail on this trigger move. Yeah. Or the other thing you could do is you could add, wherever I'll I'll figure out what it's called, but you could add right for only that specific, location if you wanted to do that wherever the files are supposed to be going.
-
-Yeah. This would be landing. It's a good point. Okay. I'll have to figure out where that's going.
-
-I need to probably make some updates to your guys' flow now that we're gonna do SQS, and then we can figure out kinda where all of these need to go. And, last question is, from my side, actually. The logs, do we have access to logs, dynatrace, or something like that so that we can see that something has not, For conversion engine, I would say the logs are a lot. So access to the logs, no. And if you did, I don't think you would probably find a lot of helpful information in that.
-
-I would say the notifications that you're gonna get, would be the most helpful source of information. So that'll tell you, if it's a successful job, what are all the files processed, what are all the source and target record counts, column counts, size before and after parquet compression. So that'll have information for current jobs, and it'll also have information if anything fails. So if anything fails, there will be a notification right now. Ideally, we get that more integrated with logs and Dynatrace in the future.
-
-It just hasn't been on our list yet, to be honest. So right now, those notifications are probably the best way to know if something's wrong, and they're going to, my team's mailbox as well as that mailbox that I saw was being created. So I think I think she put in for access for you guys. Did you guys get that email about the mailbox? It is not from me.
-
-I mean, the SMS. We're getting the SMS notification. Yeah. So right now, it's going to you all as individuals. It would be, like, going forward at some point, it would be going to a mailbox.
-
-So I know when I was meeting with the whole group, it sounded like the planning team was gonna create a mailbox for you guys. Oh, yeah. We included. Yes. We included our name, so that they will will also get mailbox.
-
-Okay. Yeah. So that so it'll be all of the information will go there. So, like, I can show you, like, quickly what our mailbox looks like. I don't know if we have anything out here.
-
-That's not the best. I'll pick a success notification. So yeah. So if it's successful, it'll show, kind of those counts like I was talking about, and I kinda sent an an example email. But then we don't have any failures in prod right now, so that's good.
-
-Here, like, this is so, like, this is the transactional team, so I can tell on Saturday, they had a failed file. So it'll tell you, like, hey. How many fails of files failed? The email still has the counts for all the files that were successful. And then one of this one is the one that failed.
-
-So that one had to be rerun. This is like if you send a blank notifications. So it'll say, like, it's environment and then test success or failed is what's right after it. And it'll have your guys' ID in it. But we have them we have email rules kinda set up at our box.
-
-So our on call is monitoring this all the time to look for any failed jobs. Oh, sorry. Can I ask one more question? Yeah. Sorry to, very over time.
-
-But, because I think when we were in a meeting with the mainframe team, they were planning on sending even the blank files. So would that cause any problem? What do you mean blank files? Just like no data in it. They'll but they will still be sending you know, let's say they will send data file out three, but it has no data inside it, but they will still send it.
-
-That's a good question. So maybe we should let them know that That would be a that would be a good one if we could test. If we could create, like, a blank file, we could run it through and see what happens. Okay. I I think if you guys have these kinda edge case ideas like this, this would be really good things to test.
-
-So, like, if you're concerned about, like, an empty file or, like, anything you guys wanna see what it does, I think we should probably probably test some of those. I don't think it'll cause a problem. I'm not exactly sure what I think it'll do, but it might just make an empty file in parquet. I'm not I'm not exactly sure. That or it could throw an error with the schema because it's empty.
-
-I'm honestly not sure. I don't know if somebody's tried to do that. Okay. That's something we might need to discuss with the main team now. Yeah.
-
-I don't necessarily think it would be a problem. The easiest way, honestly, to find out, just with how some of the conversion engine code is is just to try it. So if if there's a file that you can send blank that we can use or put one in s three, and then I can run it and see see what it does. But some of the conversion engine code is a little complex and hits different cases. So I would I would wanna see what it does for sure.
-
-I don't know if it would be a problem. We'd have to find out. But maybe we shouldn't be processing empty files anyway. I I don't know why we would be spending and processing empty files. That is a good question, like, in terms of why you would want to do that.
-
-But and I just like extra processing for no reason. But, yeah. But Maybe I could wanna talk about them about, like, why they would want to send it. I'll I'll bring it up on our weekly meeting again. Okay.
-
-That's cool. Sure that we can send it. Yeah. You're right. Because I don't know if there's much value in processing empty ones.
-
-Okay. So I owe you guys a a couple things that I think I have in the chat of what I I need to find information about. I can get you the diagrams, as well. And then, I think if we have more further questions after this, I'd be happy to do another meeting if there's more that we need to talk through. But I can send you kind of the information, that we talked about, like Splunk, Dynatrace, some of the partial files stuff.
-
-I can find that and send it to you. And then if we need more discussion, happy to do that. Sure. Thank you, Syed, for scheduling this meeting. See, it's a very important thing to understand and learn about EDE.
-
-And, Alex, thank you very much. You're welcome. Detailed knowledge, you know, like, so that we can learn. Probably next month, yeah, we may need again a repetitive course on ED services. Yeah.
-
-Or, so we may again invite you so that you can enlighten us. So I appreciate you guys taking interest because I think this level of detail is not something that a lot of our customers really care about. They care about the data being transferred, but I think you guys are trying to make a lot of informed decisions and taking interest and trying to understand how that works and how that impacts your guys' your your work, I think, is important. So happy to share. And you guys are making me we're we're also kind of in the middle of some new design work, so trying to understand how our current code works even beyond the level that I know it.
-
-So this is helping me figure out areas where I need to research a little bit more too. So it's it's very helpful, and I'm glad you guys are taking the time to ask questions. So Well, thank you very much, Alex. Thanks, everyone.
+DICE (Data Ingestion and Conformance Engine)
+Internal service built for managing customer configuration.
+Initially, ~60 Transfer Family customers were managed via Terraform.
+Now, DICE automates AWS component creation for each flow using multiple Lambda functions.
+Transfer Family Enablement via DICE
+Configuration is a JSON file uploaded into DICE.
+Stored in a DynamoDB table.
+DICE creates necessary AWS components:
+Transfer Family user role
+Policy
+SSH keys
+User setup
+Once enabled, Transfer Family handles execution.
+Conversion Engine Enablement via DICE
+DICE sets up infrastructure, including:
+SNS topic for notifications
+EventBridge rule (if scheduled)
+SQS trigger (for job execution)
+Conversion Engine Execution Flow:
+SQS event notification is triggered when an S3 file lands.
+SQS triggers a Lambda function.
+Lambda launches an EC2 instance for conversion.
+EC2 runs Python (PySpark) and Shell scripts for processing.
+Converts source files to Parquet format.
+Moves converted files to the destination.
+SQS Usage for Mainframe Data Processing
+SQS queue handles event notifications for both Transfer Family and Mainframe data.
+Mainframe Data Flow:
+Mainframe team transfers data files using Transfer Family.
+Generates a trigger file (index file) listing transferred files.
+Trigger file is sent to a designated S3 bucket.
+S3 event notification sends the trigger to an SQS queue.
+SQS triggers the Conversion Engine for processing.
+Division of Responsibilities
+Mainframe Side:
+Creates and transfers data files via Transfer Family.
+Generates and sends a trigger file to S3.
+AWS Side:
+S3 event notification sends the trigger to SQS.
+SQS triggers Conversion Engine for processing.
+
+
+
+SQS Event Processing & EC2 Lambda Role
+The team is updating the tenant to process SQS events to trigger EC2 or Lambda.
+The Lambda role provided is specifically for this Lambda function.
+The queue triggers either an EC2 instance or Lambda, which in turn launches the EC2 instance.
+EC2 Batch Processing
+The EC2 instance is launched upon receiving an event from the queue.
+It runs batch jobs and terminates once processing is complete.
+This instance is dedicated to batch jobs and handles tasks such as unzipping and splitting files.
+File Splitting & Parquet Conversion
+Default file split size before conversion: 3GB.
+Parquet file optimization is based on historical performance with different consumption tools.
+This split size is configurable based on the team's requirements.
+Once there's better clarity on file size and consumption tools, the value can be adjusted.
+Consumption Tool
+Athena will be used for querying the data.
+File splitting strategy ensures efficient data processing for Athena.
+File Naming Convention for Splitting
+Instead of generating one output Parquet file per source file, the split files will follow a naming convention with sequence numbers.
+Example:
+Source File: file1.out
+Split Files: file1_001.parquet, file1_002.parquet, file1_003.parquet, etc.
+The naming standard will be confirmed and implemented accordingly.
+Parameter Handling & JSON Format
+Initially, JSON format will be used to handle input parameters.
+The team needs clarity on specific parameters being used for their case.
+These parameters mostly define how the source files are read, including encoding and character format.
+Source File Interpretation (Mainframe)
+Ongoing discussions with Mainframe teams to understand file structure.
+This includes character encoding, delimiters, and data representation.
+Transfer Family Configuration
+The Transfer Family service is configured to handle SFTP connections.
+Configurations include:
+Home directory settings
+Access control for buckets (East & West regions)
+Public keys & server IDs
+Current access is limited to East, and West access needs to be explicitly added if required.
+Disaster recovery ensures that if East is unavailable, the system can switch to West.
+Next Steps
+No immediate questions on Transfer Family configuration.
+Focus will now shift to the Conversion Engine, which has more complexities.
+
+
+Key Points from the Discussion
+SNS Email List: Contains recipients for notifications. Needs better organization for explanation.
+
+File Processing Configuration:
+
+Default file size: 3GB (configurable).
+Key parameters: file type, source & target bucket, schema file location, data lookback window.
+Migration to SQS makes some previous fields irrelevant.
+Data Processing Considerations:
+
+Ensuring correct schema mapping (date format, empty characters, headers, etc.).
+Performance parameters like instance limits and file splitting.
+Mainframe team can send multiple trigger files for optimized processing.
+File Types and Handling:
+
+Current processing supports .out and .out.gz formats.
+Needs to confirm whether files will be mixed in compression.
+Schema mapping from mainframe types to Spark types is documented and shared.
+S3 Folder Structure & Partitioning:
+
+Current raw bucket follows the landing bucket structure.
+Planned partitioning strategy will modify folder design to include meaningful columns like state/termination.
+Handling Conversion Engine Failures:
+
+Conversion processes files individually.
+Failed files are excluded from raw storage.
+Notifications indicate success/failure per trigger file.
+Mainframe team must resend failed files or create a new trigger file for reprocessing.
+Trigger File Reprocessing:
+
+Entire trigger file can be resent or only failed files can be included in a new trigger file.
+Automated retries were tested but caused issues for downstream processes, so manual resubmission is preferred.
+
+
+Summary of Final Discussion Points
+SQS Integration & Flow Updates
+
+The team needs to adjust their workflow to accommodate SQS.
+Further discussions are required to determine where specific changes need to be made.
+Access to Logs (Dynatrace, Splunk, etc.)
+
+Direct access to conversion engine logs is not available.
+Even if access were granted, logs might not be very useful due to their volume.
+The best way to monitor jobs is through notifications.
+Job Notifications
+
+Notifications provide key information on:
+Successfully processed files (source/target counts, column counts, compression details).
+Failed jobs, including failure details.
+Currently, these notifications go to individual emails but will eventually be sent to a shared mailbox.
+The planning team is in the process of setting up access to this mailbox for relevant team members.
+Handling Blank Files
+
+The mainframe team may send empty data files.
+The impact of processing blank files is uncertain—it could either generate empty Parquet files or cause schema errors.
+Testing is needed to determine behavior.
+The team should discuss whether processing blank files is necessary or if they should be filtered out before conversion.
+Next Steps & Follow-Ups
+
+The team will gather more information on:
+Splunk/Dynatrace log access.
+Partial file handling.
+Design documentation and diagrams.
+Future meetings may be scheduled for further clarification.
+Continued collaboration will help refine the conversion engine design.
