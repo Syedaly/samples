@@ -53,3 +53,42 @@ data "aws_iam_policy_document" "kms_data_validations_policy" {
     resources = ["*"]
   }
 }
+
+
+
+
+data "aws_iam_policy_document" "kms_data_validations_policy" {
+  version = "2012-10-17"
+
+  statement {
+    sid    = "Allow access for EC2 Data Validations role"
+    effect = "Allow"
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::${var.login_info.account_id}:role/sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
+      ]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "Allow administration of the key"
+    effect = "Allow"
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::${var.login_info.account_id}:root"
+      ]
+    }
+    actions = [
+      "kms:*",
+    ]
+    resources = ["*"]
+  }
+}
