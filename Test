@@ -1,150 +1,55 @@
-DICE (Data Ingestion and Conformance Engine)
-Internal service built for managing customer configuration.
-Initially, ~60 Transfer Family customers were managed via Terraform.
-Now, DICE automates AWS component creation for each flow using multiple Lambda functions.
-Transfer Family Enablement via DICE
-Configuration is a JSON file uploaded into DICE.
-Stored in a DynamoDB table.
-DICE creates necessary AWS components:
-Transfer Family user role
-Policy
-SSH keys
-User setup
-Once enabled, Transfer Family handles execution.
-Conversion Engine Enablement via DICE
-DICE sets up infrastructure, including:
-SNS topic for notifications
-EventBridge rule (if scheduled)
-SQS trigger (for job execution)
-Conversion Engine Execution Flow:
-SQS event notification is triggered when an S3 file lands.
-SQS triggers a Lambda function.
-Lambda launches an EC2 instance for conversion.
-EC2 runs Python (PySpark) and Shell scripts for processing.
-Converts source files to Parquet format.
-Moves converted files to the destination.
-SQS Usage for Mainframe Data Processing
-SQS queue handles event notifications for both Transfer Family and Mainframe data.
-Mainframe Data Flow:
-Mainframe team transfers data files using Transfer Family.
-Generates a trigger file (index file) listing transferred files.
-Trigger file is sent to a designated S3 bucket.
-S3 event notification sends the trigger to an SQS queue.
-SQS triggers the Conversion Engine for processing.
-Division of Responsibilities
-Mainframe Side:
-Creates and transfers data files via Transfer Family.
-Generates and sends a trigger file to S3.
-AWS Side:
-S3 event notification sends the trigger to SQS.
-SQS triggers Conversion Engine for processing.
+creating KMS Key: operation error KMS: CreateKey, https response error StatusCode: 400, RequestID: f37f58cf-58a6-4abd-b38e-5be584ab899e, MalformedPolicyDocumentException: The new key policy will not al
+low you to update the key policy in the future.
 
+resource "aws_kms_key" "ilm_validations_kms_key" {
+  description             = "ILM Custom KMS Key for data validations"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  tags                    = var.default_tags
+  lifecycle {
+    create_before_destroy = true
+  }
+  policy = data.aws_iam_policy_document.kms_key_validations_policy.json
+}
 
+ data "aws_iam_policy_document" "kms_key_validations_policy" {
+   source_policy_documents = [
+     data.aws_iam_policy_document.kms_data_validations_policy.json
+   ]
+ }
 
-SQS Event Processing & EC2 Lambda Role
-The team is updating the tenant to process SQS events to trigger EC2 or Lambda.
-The Lambda role provided is specifically for this Lambda function.
-The queue triggers either an EC2 instance or Lambda, which in turn launches the EC2 instance.
-EC2 Batch Processing
-The EC2 instance is launched upon receiving an event from the queue.
-It runs batch jobs and terminates once processing is complete.
-This instance is dedicated to batch jobs and handles tasks such as unzipping and splitting files.
-File Splitting & Parquet Conversion
-Default file split size before conversion: 3GB.
-Parquet file optimization is based on historical performance with different consumption tools.
-This split size is configurable based on the team's requirements.
-Once there's better clarity on file size and consumption tools, the value can be adjusted.
-Consumption Tool
-Athena will be used for querying the data.
-File splitting strategy ensures efficient data processing for Athena.
-File Naming Convention for Splitting
-Instead of generating one output Parquet file per source file, the split files will follow a naming convention with sequence numbers.
-Example:
-Source File: file1.out
-Split Files: file1_001.parquet, file1_002.parquet, file1_003.parquet, etc.
-The naming standard will be confirmed and implemented accordingly.
-Parameter Handling & JSON Format
-Initially, JSON format will be used to handle input parameters.
-The team needs clarity on specific parameters being used for their case.
-These parameters mostly define how the source files are read, including encoding and character format.
-Source File Interpretation (Mainframe)
-Ongoing discussions with Mainframe teams to understand file structure.
-This includes character encoding, delimiters, and data representation.
-Transfer Family Configuration
-The Transfer Family service is configured to handle SFTP connections.
-Configurations include:
-Home directory settings
-Access control for buckets (East & West regions)
-Public keys & server IDs
-Current access is limited to East, and West access needs to be explicitly added if required.
-Disaster recovery ensures that if East is unavailable, the system can switch to West.
-Next Steps
-No immediate questions on Transfer Family configuration.
-Focus will now shift to the Conversion Engine, which has more complexities.
+resource "aws_kms_alias" "ilm_validations_kms_key_alias" {
+  name          = "alias/sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validations-kms-key"
+  target_key_id = aws_kms_key.ilm_validations_kms_key.key_id
+}
 
+output "validations_kms_key_arn" {
+  value = aws_kms_key.ilm_validations_kms_key.arn
+}
 
-Key Points from the Discussion
-SNS Email List: Contains recipients for notifications. Needs better organization for explanation.
+output "validations_kms_key_id" {
+  value = aws_kms_key.ilm_validations_kms_key.id
+}
 
-File Processing Configuration:
+_________________________________
 
-Default file size: 3GB (configurable).
-Key parameters: file type, source & target bucket, schema file location, data lookback window.
-Migration to SQS makes some previous fields irrelevant.
-Data Processing Considerations:
+data "aws_iam_policy_document" "kms_data_validations_policy" {
+  version = "2012-10-17"
 
-Ensuring correct schema mapping (date format, empty characters, headers, etc.).
-Performance parameters like instance limits and file splitting.
-Mainframe team can send multiple trigger files for optimized processing.
-File Types and Handling:
-
-Current processing supports .out and .out.gz formats.
-Needs to confirm whether files will be mixed in compression.
-Schema mapping from mainframe types to Spark types is documented and shared.
-S3 Folder Structure & Partitioning:
-
-Current raw bucket follows the landing bucket structure.
-Planned partitioning strategy will modify folder design to include meaningful columns like state/termination.
-Handling Conversion Engine Failures:
-
-Conversion processes files individually.
-Failed files are excluded from raw storage.
-Notifications indicate success/failure per trigger file.
-Mainframe team must resend failed files or create a new trigger file for reprocessing.
-Trigger File Reprocessing:
-
-Entire trigger file can be resent or only failed files can be included in a new trigger file.
-Automated retries were tested but caused issues for downstream processes, so manual resubmission is preferred.
-
-
-Summary of Final Discussion Points
-SQS Integration & Flow Updates
-
-The team needs to adjust their workflow to accommodate SQS.
-Further discussions are required to determine where specific changes need to be made.
-Access to Logs (Dynatrace, Splunk, etc.)
-
-Direct access to conversion engine logs is not available.
-Even if access were granted, logs might not be very useful due to their volume.
-The best way to monitor jobs is through notifications.
-Job Notifications
-
-Notifications provide key information on:
-Successfully processed files (source/target counts, column counts, compression details).
-Failed jobs, including failure details.
-Currently, these notifications go to individual emails but will eventually be sent to a shared mailbox.
-The planning team is in the process of setting up access to this mailbox for relevant team members.
-Handling Blank Files
-
-The mainframe team may send empty data files.
-The impact of processing blank files is uncertain—it could either generate empty Parquet files or cause schema errors.
-Testing is needed to determine behavior.
-The team should discuss whether processing blank files is necessary or if they should be filtered out before conversion.
-Next Steps & Follow-Ups
-
-The team will gather more information on:
-Splunk/Dynatrace log access.
-Partial file handling.
-Design documentation and diagrams.
-Future meetings may be scheduled for further clarification.
-Continued collaboration will help refine the conversion engine design.
+  statement {
+    sid    = "Allow access for EC2 Data Validations role"
+    effect = "Allow"
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:aws:iam::${var.login_info.account_id}:role/sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
+      ]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+    ]
+    resources = ["*"]
+  }
+}
