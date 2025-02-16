@@ -1,139 +1,124 @@
-This document presents an overview of the upstream systems used by the Auto Legacy Shutdown – ILM to transfer data from the Mainframe to the AWS S3 Landing bucket and the use of the Conversion Engine to convert flat files into Parquet format and subsequently store them in the S3 Raw bucket.
-Transfer Family:
+**Overview**
+This document presents an overview of the upstream systems used by the Auto Legacy Shutdown – ILM to transfer data from the Mainframe to the AWS S3 Landing bucket. It also discusses the role of the Conversion Engine in transforming flat files into Parquet format before storing them in the S3 Raw bucket.
 
-•	Authentication occurs first from State Farm On-Prem
-•	Transfer Family is a bi-directional SFTP service using SSH Key Pair authentication
-•	A PUT or GET is used from On-Prem to push or pull data.
-•	The Transfer Family Server is setup with Cloudwatch Logging 
-•	The Transfer Family Endpoint Security Group restricts inbound and outbound traffic based upon allowed CIDR blocks of 10.0.0.0/8
+---
 
-•	A Ingestion Transfer Family User Role is created to allow access to the S3 Bucket/Prefixes in the AWS pcmngd04 tenant account
+### AWS Transfer Family
+AWS Transfer Family is a fully managed file transfer service that enables secure exchange of files using protocols such as SFTP. It plays a critical role in moving data between State Farm's on-premises mainframe and AWS S3. The following key aspects define its operation:
 
-•	The Data Ingestion Transfer Family User Role is added to the S3 Bucket Policy and KMS Key Policy in the AWS pcmngd04 tenant account.
+- Authentication occurs from State Farm On-Prem using SSH Key Pair.
+- Supports bi-directional SFTP transfers using PUT or GET operations.
+- CloudWatch logging is enabled for monitoring and issue tracking.
+- The Transfer Family Endpoint Security Group enforces access restrictions via CIDR blocks.
+- A dedicated Transfer Family User Role is created for secure S3 access in the AWS pcmngd04 tenant account.
+- The User Role is also included in the S3 Bucket Policy and KMS Key Policy to manage permissions effectively.
 
-Once the transfer family is established, the likelihood of errors is significantly low. However, the primary issues that can arise are often linked to changes in the S3 bucket permissions or KMS permissions that have been set up in the AWS pcmngd04 tenant account. Furthermore, if the mainframe modifies the SSH key without prior notification, it may also lead to issues. 
+#### Key Scenarios & Considerations
+- **File Transfer Integrity:** If one file out of ten fails during transfer, SFTP rolls back the entire batch instead of partially transferring data.
+- **File Size Management:** Though SFTP supports up to 5TB transfers, the EDE team recommends sending smaller files to prevent timeout errors.
+- **Monitoring & Alerts:** Transfer attempts (both success and failure) are logged in CloudWatch, with dashboards available via Dynatrace and Splunk for ILM team access.
+- **Network Dependencies:** Direct Connect is a PCAF module, and its health checks and outages are monitored by the PCAF team.
 
-Scenario: 
-	While transferring 10 data files, if one data file fails to transfer, SFTP rolbacks the entire file instead of placing partial file in S3 Landing.
-	Though SFTP supports 5TB of files to transfer, EDE Team suggests to send the files with low size limits from Mainframe to avoid Timeout errors. 
-	SFTP success / failed attempts will be logged in Cloudwatch and these logs are monitored using Dynatrace and Splunk. ILM team will get access to the Dashboards of Dynatrace. 
-	Direct Connect service is PCAF module and health checks or outages are monitored and maintained by PCAF team
+---
 
+### DICE (Data Ingestion and Conformance Engine)
+DICE is an internal service designed to automate AWS component creation for managing customer configurations. Initially, 60 Transfer Family customers were onboarded via Terraform; however, DICE now streamlines this process using Lambda functions.
 
-_________________________
-DICE (Data Ingestion and Conformance Engine): 
-Internal service built for managing customer configuration. Initially, 60 Transfer Family customers were managed via Terraform. Now, DICE automates AWS component creation for each flow using multiple Lambda functions.
+#### Transfer Family Enablement via DICE
+DICE automates Transfer Family setup by processing a JSON-based configuration file stored in DynamoDB. The automated workflow includes:
+- Creating the Transfer Family user role.
+- Setting up IAM policies.
+- Configuring JCL and SSH keys for mainframe connectivity.
 
-Transfer Family Enablement via DICE
-Configuration is a JSON file uploaded into DICE. Stored in a DynamoDB table. DICE creates necessary AWS components:
-	Transfer Family user role
-	IAM Policy
-	JCL and SSH keys setup from Mainframe
-	Once enabled, Transfer Family handles execution.
+Once enabled, Transfer Family handles data transfer execution seamlessly.
 
-Conversion Engine Enablement via DICE:
+#### Conversion Engine Enablement via DICE
+For data conversion, DICE provisions essential infrastructure:
+- SNS topics for notifications.
+- EventBridge rules (if scheduled execution is required).
+- SQS triggers for job execution.
 
-DICE sets up infrastructure, including:
-	SNS topic for notifications
-	EventBridge rule (if scheduled)
-	SQS trigger (for job execution)
+---
 
-Conversion Engine Execution Flow:
-	SQS event notification is triggered when an S3 file lands.
-	SQS triggers a Lambda function.
-	Lambda launches an EC2 instance for conversion.
-	EC2 runs Python (PySpark) and Shell scripts for processing.
-	Converts source files to Parquet format.
-	Moves converted files to the destination.
+### Conversion Engine Execution Flow
+The Conversion Engine processes files by converting raw data into optimized Parquet format. The workflow involves:
 
-SQS Usage for Mainframe Data Processing:
-	SQS queue handles event notifications for both Transfer Family and Mainframe data.
+1. SQS event notification triggers a Lambda function upon file arrival in S3.
+2. Lambda function launches an EC2 instance for processing.
+3. The EC2 instance runs Python (PySpark) and Shell scripts to process data.
+4. The converted files are moved to the destination S3 bucket.
 
-	Mainframe Data Flow:
-1.	Mainframe team transfers data files using Transfer Family.
-2.	Generates a trigger file (index file) listing transferred files.
-3.	Trigger file is sent to a designated S3 bucket.
-4.	S3 event notification sends the trigger to an SQS queue.
-5.	SQS triggers the Conversion Engine for processing.
+#### Mainframe Data Flow
+- Mainframe transfers data via Transfer Family.
+- A trigger file (index file) is generated, listing transferred files.
+- The trigger file is sent to a specific S3 bucket.
+- An S3 event notification sends this trigger to an SQS queue.
+- SQS triggers the Conversion Engine to process the listed files.
 
-Division of Responsibilities
-	Mainframe Side:
-1.	Creates and transfers data files via Transfer Family.
-2.	Generates and sends a trigger file to S3.
-	AWS Side:
-1.	S3 event notification sends the trigger to SQS.
-2.	SQS triggers Conversion Engine for processing.
+---
 
+### Processing & Optimization Strategies
 
-SQS Event Processing & EC2,  Lambda Role:
-	The ILM team is updating the AWS tenant to process SQS events to trigger EC2 or Lambda.
-	The queue triggers either an EC2 instance or Lambda, which in turn launches the EC2 instance.
+#### SQS Event Processing
+- The ILM team is updating AWS to ensure that SQS events trigger either EC2 instances or Lambda functions as needed.
+- The triggered EC2 instance runs batch processing tasks and terminates post-execution.
 
-EC2 Batch Processing:
-	The EC2 instance is launched upon receiving an event from the queue.
-	It runs batch jobs and terminates once processing is complete.
-	This instance is dedicated to batch jobs and handles tasks such as unzipping and splitting files.
+#### File Splitting & Parquet Conversion
+- Default file split size before conversion is **3GB**.
+- The split size can be adjusted based on historical performance and consumption tool compatibility.
+- Naming conventions follow a sequence-based approach:
+  - Example: `file1_001.parquet`, `file1_002.parquet`.
 
-File Splitting & Parquet Conversion:
-	Default file split size before conversion: 3GB.
-	Parquet file optimization is based on historical performance with different consumption tools.
-	This split size is configurable based on the team's requirements.
-	Once there's better clarity on file size and consumption tools, the file size value can be configured.
+#### Handling Source File Interpretations
+- Ongoing collaboration with the mainframe team to define encoding, delimiters, and data structures.
+- JSON format is used to specify file interpretation parameters such as encoding and data types.
 
-File Naming Convention for Splitting:
-	Instead of generating one output Parquet file per source file, the split files will follow a naming convention with sequence numbers.
-	Example:
-o	Source File: file1.out
-o	Split Files: file1_001.parquet, file1_002.parquet, file1_003.parquet, etc.
-	The naming standard will be confirmed and implemented accordingly by EDE Team.
+#### Data Processing Considerations
+- Schema mapping for correct format handling (date, headers, empty characters, etc.).
+- Performance tuning for optimal instance selection and file handling.
+- Mainframe team can send multiple trigger files for parallel processing.
 
-Parameter Handling & JSON Format:
-	Initially, JSON format will be used to handle input parameters.
-	The team needs clarity on specific parameters being used for their case.
-	These parameters mostly define how the source files are read, including encoding and dataypes format.
+#### File Types & Schema Handling
+- Supports `.out` and `.out.gz` file formats.
+- Schema mappings between mainframe data types and Spark data structures are documented.
 
-Source File Interpretation (Mainframe):
-	Ongoing discussions with Mainframe teams to understand file structure.
-	This includes character encoding, delimiters, and data representation.
+#### S3 Folder Structure & Partitioning
+- Current raw bucket mirrors the landing bucket structure.
+- Future partitioning will align folder structures with attributes like **state and termination dates** for efficient querying.
 
-Data Processing Considerations:
+---
 
-	Ensuring correct schema mapping (date format, empty characters, headers, etc.).
-	Performance parameters like instance limits and file splitting.
-	Mainframe team can send multiple trigger files for optimized processing.
+### Error Handling & Notifications
 
-File Types and Handling:
+#### Conversion Engine Failure Handling
+- Failed files are excluded from raw storage.
+- SNS notifications report success or failure for each trigger file.
+- Mainframe team is responsible for resubmitting failed files.
 
-	Current processing supports .out and .out.gz formats.
-	Needs to confirm whether files will be mixed in compression.
-	Schema mapping from mainframe types to Spark types is documented and shared.
+#### Trigger File Reprocessing
+- Failed files can be resent individually or as part of a new trigger file.
+- Automated retries were considered but posed downstream issues, leading to a preference for manual reprocessing.
 
-S3 Folder Structure & Partitioning:
+#### Notifications & Logging
+- Success/failure notifications provide insights into:
+  - Source vs. processed file counts.
+  - Schema validation and compression details.
+  - Failure reasons with detailed logs.
+- Currently, notifications are sent to individual emails but will eventually be consolidated into a shared mailbox.
 
-	Current raw bucket follows the landing bucket structure.
-	Planned partitioning strategy will modify folder design to include meaningful columns like state/termination.
+#### Handling Blank Files
+- Mainframe may send empty files, requiring validation on processing impact.
+- Tests will determine if blank files generate errors or empty Parquet outputs.
+- The team needs to decide whether to filter out blank files before conversion.
 
-Handling Conversion Engine Failures:
+---
 
-	Conversion processes files individually.
-	Failed files are excluded from raw storage.
-	SNS Notifications indicate success/failure per trigger file.
-	Mainframe team must resend failed files or create a new trigger file for reprocessing.
+### Conclusion
+This document outlines the role of AWS Transfer Family and the Conversion Engine in facilitating seamless data migration from mainframes to AWS. Key considerations include authentication, file integrity, monitoring, and error handling. Future enhancements aim to optimize file processing strategies and improve monitoring efficiency through centralized notification systems.
 
-Trigger File Reprocessing:
+#### Next Steps
+- **Finalize the folder structure** for raw and processed data.
+- **Optimize batch processing strategies** to improve efficiency.
+- **Enhance monitoring** using centralized dashboards for better visibility into failures.
+- **Standardize retry mechanisms** to improve reliability of failed file processing.
 
-	Entire trigger file can be resent or only failed files can be included in a new trigger file.
-	Automated retries were tested but caused issues for downstream processes, so manual resubmission is preferred.
-
-Notifications provide key information on:
-	Successfully processed files (source/target counts, column counts, compression details).
-	Failed jobs, including failure details.
-	Currently, these notifications go to individual emails but will eventually be sent to a shared mailbox.
-	The planning team is in the process of setting up access to this mailbox for relevant team members.
-
-Handling Blank Files:
-
-	The mainframe team may send empty data files.
-	The impact of processing blank files is uncertain—it could either generate empty Parquet files or cause schema errors.
-	Testing is needed to determine behavior.
-	The team should discuss whether processing blank files is necessary or if they should be filtered out before conversion.
