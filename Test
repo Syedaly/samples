@@ -1,178 +1,139 @@
-download failed: s3://sf-pcmngd04-use1-test-autolegacyilm-s3-landing/scripts/data_validations.py to home/ssm-user/validations/scripts/data_validations.py An error occurred (AccessDenied) when calling the GetObject operation: User: arn:aws:sts::756033938671:assumed-role/sf-pcmngd04-use1-test-autolegacyilm-validation-role/i-095f97b7295dc1e43 is not authorized to perform: kms:Decrypt on resource: arn:aws:kms:us-east-1:756033938671:key/ee9ac746-8bf3-48c5-8d10-c68fdc55b441 because no resource-based policy allows the kms:Decrypt action
+This document presents an overview of the upstream systems used by the Auto Legacy Shutdown – ILM to transfer data from the Mainframe to the AWS S3 Landing bucket and the use of the Conversion Engine to convert flat files into Parquet format and subsequently store them in the S3 Raw bucket.
+Transfer Family:
 
-_________________________________
-data "aws_iam_policy_document" "sf-ec2-assume-role-policy" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
+•	Authentication occurs first from State Farm On-Prem
+•	Transfer Family is a bi-directional SFTP service using SSH Key Pair authentication
+•	A PUT or GET is used from On-Prem to push or pull data.
+•	The Transfer Family Server is setup with Cloudwatch Logging 
+•	The Transfer Family Endpoint Security Group restricts inbound and outbound traffic based upon allowed CIDR blocks of 10.0.0.0/8
 
-# Actions included in the policy
-data "aws_iam_policy_document" "sf-als-ilm-validation-policy" {
-  statement {
-    sid    = "AllowAllActions"
-    effect = "Allow"
-    actions = [
-      "s3:ListBucket",
-      "s3:GetObject",
-      "s3:PutObject",
-      "s3:DeleteObject",
-      "s3:GetBucketLocation",
-      "s3:GetBucketAcl",
-      "s3:GetObjectAcl",
-      "s3:PutObjectAcl",	    
-      "ec2:DescribeInstances",
-      "ec2:StartInstances",
-      "ec2:StopInstances",
-	    "ec2:RunInstances",
-      "kms:TagResource",
-      "kms:List*",
-      "kms:Get*",
-      "kms:Describe*",      
-      "kms:Create*",
-      "kms:Encrypt",
-      "kms:GenerateDataKey",
-      "kms:Encrypt",
-      "kms:Decrypt",     
-    ]
-    resources = [
-      "arn:aws:s3:::sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-s3-landing",
-      "arn:aws:s3:::sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-s3-raw",
-      "arn:aws:s3:::sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-s3-landing/*",
-      "arn:aws:s3:::sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-s3-raw/*",      
-      "arn:aws:ec2:us-east-1:${var.login_info.account_id}:instance/*"
-      ]
-  }
-  statement {
-    effect    = "Allow"
-    actions   = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-    resources = ["arn:aws:logs:${var.default_tags.region}:${var.login_info.account_id}:*"]
-  }
-}
+•	A Ingestion Transfer Family User Role is created to allow access to the S3 Bucket/Prefixes in the AWS pcmngd04 tenant account
 
-# Creates IAM role and updates the trust relationship
-resource "aws_iam_role" "sf-als-ilm-validation-role" {
-  name                  = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
-  permissions_boundary  = var.login_info.role_pb_arn
-  assume_role_policy    = data.aws_iam_policy_document.sf-ec2-assume-role-policy.json
-  description           = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
-  force_detach_policies = true
+•	The Data Ingestion Transfer Family User Role is added to the S3 Bucket Policy and KMS Key Policy in the AWS pcmngd04 tenant account.
 
-  tags = merge(
-    var.default_tags,
-    {
-      "Name" = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
-    }
-  )
-}
+Once the transfer family is established, the likelihood of errors is significantly low. However, the primary issues that can arise are often linked to changes in the S3 bucket permissions or KMS permissions that have been set up in the AWS pcmngd04 tenant account. Furthermore, if the mainframe modifies the SSH key without prior notification, it may also lead to issues. 
 
-# Creates new inline policy
-resource "aws_iam_role_policy" "sf-als-ilm-validation-policy" {
-  name   = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-policy"
-  role   = aws_iam_role.sf-als-ilm-validation-role.name
-  policy = data.aws_iam_policy_document.sf-als-ilm-validation-policy.json
-}
+Scenario: 
+	While transferring 10 data files, if one data file fails to transfer, SFTP rolbacks the entire file instead of placing partial file in S3 Landing.
+	Though SFTP supports 5TB of files to transfer, EDE Team suggests to send the files with low size limits from Mainframe to avoid Timeout errors. 
+	SFTP success / failed attempts will be logged in Cloudwatch and these logs are monitored using Dynatrace and Splunk. ILM team will get access to the Dashboards of Dynatrace. 
+	Direct Connect service is PCAF module and health checks or outages are monitored and maintained by PCAF team
 
-# Creates new iam instance profile
-resource "aws_iam_instance_profile" "sf-als-ilm-validation-profile" {
-  name = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-profile"
-  role = aws_iam_role.sf-als-ilm-validation-role.name
-  tags = merge(
-    var.default_tags,
-    {
-      "Name" = "sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-profile"
-    }
-  )
-}
 
-# Attach managed policies - kms
-# resource "aws_iam_role_policy_attachment" "sf-role-policy-attach1" {
-#   policy_arn = "arn:aws:iam::${var.account_number}:policy/sf-kms-access-policy"
-#   role       = aws_iam_role.sf-als-ilm-validation-role.name
-# }
+_________________________
+DICE (Data Ingestion and Conformance Engine): 
+Internal service built for managing customer configuration. Initially, 60 Transfer Family customers were managed via Terraform. Now, DICE automates AWS component creation for each flow using multiple Lambda functions.
 
-# Attach managed policies - ssm
-resource "aws_iam_role_policy_attachment" "sf-role-policy-attach2" {
-  policy_arn = "arn:aws:iam::${var.login_info.account_id}:policy/sf-ssm-required-policy"
-  role       = aws_iam_role.sf-als-ilm-validation-role.name
-}
+Transfer Family Enablement via DICE
+Configuration is a JSON file uploaded into DICE. Stored in a DynamoDB table. DICE creates necessary AWS components:
+	Transfer Family user role
+	IAM Policy
+	JCL and SSH keys setup from Mainframe
+	Once enabled, Transfer Family handles execution.
 
-# Output ec2-role-name
-output "sf-ec2-role-name" {
-  value = aws_iam_instance_profile.sf-als-ilm-validation-profile.name
-}
+Conversion Engine Enablement via DICE:
 
-__________________________________________________________________________________________
+DICE sets up infrastructure, including:
+	SNS topic for notifications
+	EventBridge rule (if scheduled)
+	SQS trigger (for job execution)
 
-resource "aws_kms_key" "ilm_validations_kms_key" {
-  description             = "ILM Custom KMS Key for data validations"
-  enable_key_rotation     = true
-  deletion_window_in_days = 30
-  tags                    = var.default_tags
-  lifecycle {
-    create_before_destroy = true
-  }
-  policy = data.aws_iam_policy_document.kms_key_validations_policy.json
-}
+Conversion Engine Execution Flow:
+	SQS event notification is triggered when an S3 file lands.
+	SQS triggers a Lambda function.
+	Lambda launches an EC2 instance for conversion.
+	EC2 runs Python (PySpark) and Shell scripts for processing.
+	Converts source files to Parquet format.
+	Moves converted files to the destination.
 
- data "aws_iam_policy_document" "kms_key_validations_policy" {
-   source_policy_documents = [
-     data.aws_iam_policy_document.kms_key_common_policy.json,
-     data.aws_iam_policy_document.kms_data_validations_policy.json
-   ]
- }
+SQS Usage for Mainframe Data Processing:
+	SQS queue handles event notifications for both Transfer Family and Mainframe data.
 
-resource "aws_kms_alias" "ilm_validations_kms_key_alias" {
-  name          = "alias/sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validations-kms-key"
-  target_key_id = aws_kms_key.ilm_validations_kms_key.key_id
-}
+	Mainframe Data Flow:
+1.	Mainframe team transfers data files using Transfer Family.
+2.	Generates a trigger file (index file) listing transferred files.
+3.	Trigger file is sent to a designated S3 bucket.
+4.	S3 event notification sends the trigger to an SQS queue.
+5.	SQS triggers the Conversion Engine for processing.
 
-output "validations_kms_key_arn" {
-  value = aws_kms_key.ilm_validations_kms_key.arn
-}
+Division of Responsibilities
+	Mainframe Side:
+1.	Creates and transfers data files via Transfer Family.
+2.	Generates and sends a trigger file to S3.
+	AWS Side:
+1.	S3 event notification sends the trigger to SQS.
+2.	SQS triggers Conversion Engine for processing.
 
-output "validations_kms_key_id" {
-  value = aws_kms_key.ilm_validations_kms_key.id
-}
-_____________________________________________
 
-data "aws_iam_policy_document" "kms_data_validations_policy" {
-  version = "2012-10-17"
+SQS Event Processing & EC2,  Lambda Role:
+	The ILM team is updating the AWS tenant to process SQS events to trigger EC2 or Lambda.
+	The queue triggers either an EC2 instance or Lambda, which in turn launches the EC2 instance.
 
-  statement {
-    sid    = "Allow access for EC2 Data Validations role"
-    effect = "Allow"
-    principals {
-      type = "AWS"
-      identifiers = [
-        "arn:aws:iam::${var.login_info.account_id}:role/sf-${var.deploy_env}-${var.default_tags.reg-abbr}-${var.default_tags.env}-${var.default_tags.tenant}-validation-role"
-      ]
-    }
-    actions = [
-      "kms:Update*",
-      "kms:UntagResource",
-      "kms:TagResource",
-      "kms:Revoke*",
-      "kms:Put*",
-      "kms:List*",
-      "kms:Get*",
-      "kms:Enable*",
-      "kms:Disable*",
-      "kms:Describe*",      
-      "kms:Create*",
-      "kms:Decrypt",
-      "kms:Encrypt",
-      "kms:GenerateDataKey"
-    ]
-    resources = ["*"]
-  }
+EC2 Batch Processing:
+	The EC2 instance is launched upon receiving an event from the queue.
+	It runs batch jobs and terminates once processing is complete.
+	This instance is dedicated to batch jobs and handles tasks such as unzipping and splitting files.
 
-}
+File Splitting & Parquet Conversion:
+	Default file split size before conversion: 3GB.
+	Parquet file optimization is based on historical performance with different consumption tools.
+	This split size is configurable based on the team's requirements.
+	Once there's better clarity on file size and consumption tools, the file size value can be configured.
+
+File Naming Convention for Splitting:
+	Instead of generating one output Parquet file per source file, the split files will follow a naming convention with sequence numbers.
+	Example:
+o	Source File: file1.out
+o	Split Files: file1_001.parquet, file1_002.parquet, file1_003.parquet, etc.
+	The naming standard will be confirmed and implemented accordingly by EDE Team.
+
+Parameter Handling & JSON Format:
+	Initially, JSON format will be used to handle input parameters.
+	The team needs clarity on specific parameters being used for their case.
+	These parameters mostly define how the source files are read, including encoding and dataypes format.
+
+Source File Interpretation (Mainframe):
+	Ongoing discussions with Mainframe teams to understand file structure.
+	This includes character encoding, delimiters, and data representation.
+
+Data Processing Considerations:
+
+	Ensuring correct schema mapping (date format, empty characters, headers, etc.).
+	Performance parameters like instance limits and file splitting.
+	Mainframe team can send multiple trigger files for optimized processing.
+
+File Types and Handling:
+
+	Current processing supports .out and .out.gz formats.
+	Needs to confirm whether files will be mixed in compression.
+	Schema mapping from mainframe types to Spark types is documented and shared.
+
+S3 Folder Structure & Partitioning:
+
+	Current raw bucket follows the landing bucket structure.
+	Planned partitioning strategy will modify folder design to include meaningful columns like state/termination.
+
+Handling Conversion Engine Failures:
+
+	Conversion processes files individually.
+	Failed files are excluded from raw storage.
+	SNS Notifications indicate success/failure per trigger file.
+	Mainframe team must resend failed files or create a new trigger file for reprocessing.
+
+Trigger File Reprocessing:
+
+	Entire trigger file can be resent or only failed files can be included in a new trigger file.
+	Automated retries were tested but caused issues for downstream processes, so manual resubmission is preferred.
+
+Notifications provide key information on:
+	Successfully processed files (source/target counts, column counts, compression details).
+	Failed jobs, including failure details.
+	Currently, these notifications go to individual emails but will eventually be sent to a shared mailbox.
+	The planning team is in the process of setting up access to this mailbox for relevant team members.
+
+Handling Blank Files:
+
+	The mainframe team may send empty data files.
+	The impact of processing blank files is uncertain—it could either generate empty Parquet files or cause schema errors.
+	Testing is needed to determine behavior.
+	The team should discuss whether processing blank files is necessary or if they should be filtered out before conversion.
