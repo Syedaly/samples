@@ -1,355 +1,146 @@
+Mainframe Data Extraction and Migration Process
 
+Overview
 
-It's IDAA. That's and this is for the this is for the, IMS stuff. DB two, they're gonna do their own extract process because that was not available. But I'll just start with the IMS piece. And with IMS, there's extracts that are being done for the OT-eighty four, for the 500 and for the 800, the extracts that Jan Morrison's team is doing to feed at the IDAA.
+This document details the extraction and migration process of mainframe data, focusing on IMS and DB2 data structures. The process involves multiple stages, including extraction, filtering, reformatting, and migration to AWS. The workflow is primarily driven by JCL jobs and involves structured data transformation into a queryable format.
 
-We're going to take those existing extracts where they've broken things out. And for example on the 800 they break it out. There's 113 different structures that are part of the 800. They've broken every structure out to a separate file and that's what the extract process has done and they generated individual files for each of those structure types. And in the case of what they're doing, they're doing it 10 wide.
+Data Extraction Process
 
-So basically the first piece would be the extract process runs. And I'll just give you 800 as an example. The 884 and then the 500 are very similar. And, you know, once you get the flow, you understand it. So basically, they run part 10 wide.
+IMS Extraction
 
-And then after all those 10 wide partitions are run again for those 13 different structure types, then there's a job that will take each structure type, all the 10 whites and roll them into one file for each structure type. So you only have 113 files and roll all those 10 partitions into one file. So the first job does the extract. Second set of jobs, we'll roll that up into one file per structure type. And then after you've got that, then, once you've got that data, then there's a filter process that relies on some of the data that has been rolled up.
+Extracts are generated for OT-84, 500, and 800 datasets.
 
-So we have to create a filter process to tell us what stuff we want to actually move. And so, it basically just takes three of those files, the code strip, the ox three t, and the primary structure. Those are three of the files that were generated for the extract that were rolled up. It takes those three files and joins those together, and basically comes up and says, okay, this is the data that we're interested in moving and that goes into the filter file. So now you've got your filter file.
+The extraction is performed by Jan Morrison’s team to feed into IDAA.
 
-The next piece of that would be that you will join that filter file with all the other extracts that you rolled up individually. So you can join that filter file to each of those extract files. And basically, the net result of that would be that now you're only gonna get the data that you're interested in moving. That goes into a separate set of files after that join. And then that set of files that you've joined, with it's called the header file.
+Each dataset consists of multiple structures (e.g., the 800 dataset has 113 different structures).
 
-It's what we call the header header process. After those header files have been joined with the filters, those header files that were the output of that process are then your input to your AWS reforming process, which will take all those, formatted header files now as input to the header process to the reformat process. And it will reformat it based on certain criteria like the binary has to be picked and and, pack decimal has to be picked. We have to put the leverage between them. We have to validate certain, characters maybe need to be replaced if they're not acceptable.
+The extraction process generates separate files for each structure type.
 
-So all that reformatting is done. And then there's an output set of files from that reformat process. And then those are the files then if this were production, that's what all run on the region. Then you would take all the output of those reformat programs. Those would then be copied over to prod from the region to prod.
+The extraction is performed 10-wide, meaning 10 partitions run in parallel.
 
-And then from there, there will be another set of jobs that would take those datasets now that have been reformatted and then sitting on prod that would be FTPing them over to, the s three bucket over on AWS. And then Chris has those jobs that, that process he set up to create the meta files. And at that point, those individual files would then be joined with their met with their, schemas. And when they're joined, that through the ED conversion engine, they would be put into parquet. So that basically that flow is identical for all of them.
+A job consolidates 10-wide partitions into one file per structure type.
 
-You may have to start with a different thing. Like I said, I must say we are using the extracts that were available from Jan Morrison's group that goes into IDAA. But for the DB2 stuff that was not available. So they have to create their own extract process. But once they create the extract files, the things that we just talked about joining with the head creating your header versions and running them through the reformatting program and moving them, that's all the same.
+DB2 Extraction
 
-It's just that they had to start with their own extract versus what we did for the 800, the 84, and the 500 because Jet Mars has provided it. So that's generally that's the flow. Does that make sense? Yes, Mike. That is a lot of information.
+Unlike IMS, DB2 extracts were not available from Jan Morrison’s group.
 
-In fact, it's the entire flow. So we just wanted to understand the, the the beginning parts. Right? The, you know, the flow is something like the IDAA extract filters, and you have been applied everything in between, and, you have been done all almost all the jobs in the in the back end. So, what exactly this IDAA means?
+The team developed their own DB2 extract process.
 
-Because that actually comes into the first picture. Right? So, IDAA, we you are taking the data and, is that a kind of a tool or, you are after you have been decided what exactly Yeah. Yeah. The the yeah.
+The extraction utilizes IBM DB2 Unload Utility.
 
-The extract itself is that's a process that takes production data and so that people can basically, like, I must have things that are, like, an IMS format, it takes they get a I think it's a day behind the extract process runs. They get the data extracted for production. It puts it in the files and then they can load it into IDAA tables. So people can query data from production like a day old data in table format even though it may have started as IMS. But they allow us to use query facilities under IDAA to get information out in a mechanism using tables as opposed to having to, like, for IMS example, as opposed to having to actually query IMS, it puts them into files that can load into the IDAA tables that they then can query.
+Once extracted, the data follows the same process as IMS data (joining, filtering, reformatting, etc.).
 
-But the first part of that is an interactive data. Basically, it takes a hierarchical database and turns it into a relational database also. Right. Yeah. Huddle.
+Filtering and Data Transformation
 
-Right. Yep. So is that an extract go ahead. I'm sorry. That extract.
+Filter Process
 
-That extract program is in house development. It's not a Yes. Facility. It's a program developed by State Farm. Yep.
+The extracted data undergoes a filtering process to determine which records should be moved.
 
-Yes. Within yeah. Within State Farm. Right. So that that's that's the first part.
+Three files are used for filtering:
 
-But if you guys about the extract, that's why they have there to begin with is to basically take IMS to load it into relational tables that you can query production data via using IMS to query. Okay. So, Mike, I have a question. Yeah. Go ahead, sir.
+Code Strip File
 
-No. No. Vivek. You can go ahead. So, Mike, you just explained the filter part and how things are being done.
+OX-3T File
 
-Do you have any document or a flow that you can share with us just for our knowledge purposes? I think that they have a I think that, Mark and James' group put together change to probably talk to this. They put a you have a flow document. Right? I mean, you guys put something together.
+Primary Structure File
 
-Yeah. Yep. Yep. Yeah. So we'll show you that.
+These three files are joined together to create the filter file.
 
-Yeah. Yeah. I'll get I'll give the, the link and put it in the chat. So If you can go through that using a diagram, you know, like because see, once I'm a very, you know, like, a picture oriented guy. Sure.
+The filter file contains only the data required for migration.
 
-The text is good, but, you know, like, if you can just go through that so that it really clarifies, price, that could be good for us. Thank you. Yep. Yep. Yeah.
+Joining Process
 
-We can, I mean, do you do you want, do you wanna look at that now or do you wanna take that back and look at it yourselves, come back with questions related to that? Or because I think we I think we have other things you guys want to talk about, so I don't know how much because I think we got an hour or so. How much do you wanna go through that flow right now, or do you wanna take it with you back and look at it and then come back with questions? So let go ahead with other topics. And if we have some time, then we can talk about that picture too.
+The filter file is joined with the extracted data to retain only necessary records.
 
-I guess we will come, like, get back to you and request you for your time. Thank you. Okay. So okay. So what I'm sorry.
+The output is stored in header files.
 
-Say, what was the next thing you guys have? Or No. So in the initial part itself, no. My, there is, the process that you have been following for the extract. So is this the same thing applicable for both the d b two and IMS?
+The header files serve as input for AWS reformatting.
 
-Is that the case? Well, it's definitely well, the extract is and I mentioned the extract for IMS was already available from Jan Morrison's group because they feed it into their IDAA process. So that extract was available. We piggyback off of that. For d b two, the guys are doing the d b two have to do had to build their own extract process because they didn't there was nothing provided from from Jan's group for d b two.
+Reformatting Process
 
-So, the folks folks who are working on the d v two piece had to do that first piece themselves instead of us piggybacking off of Jan's group for the IMS. They had to do their own extract for d v two. Okay. Awesome. Are they are they still using the d v two unload IBM utility for that?
+The AWS reformatting process performs:
 
-Yeah. Yeah. That's from my understanding. If somebody knows different, let me know. But that's my understanding.
+Binary and packed decimal conversions.
 
-Yeah. They're just using the the d v two unload and and back to that. But, you know, like I said, a lot of a lot of stuff after that is, you know, once you get into a file, whether you got it via some d v two unload or you got it via an extract, a lot of that flow I talked about is gonna be pretty much the same. Okay. So, while you're, extracting the data, Mike, you have been came at told that out of curiosity, right, this, IDA, the relational, where, relational database or relational things that is taking care of.
+Data validation (e.g., replacing unacceptable characters).
 
-So is this, something that has been, created while you are extracting the data to create the relationship between the databases, or it's a kind of just an extract and then, you're writing the queries on top of it. But you you are you mean you talk about the IDA itself process now? Yeah. The extract and the That that that mean that process has been around a while. Okay.
+Insertion of delimiters for compatibility.
 
-That ID that extract for IDA. We just basically, Well, they do is just to explain it. So if you, you know, IMS is a parent child hierarchy. Right? And so, the actual IMS segments don't have every field.
+The reformatted data is stored in structured output files.
 
-It's on all the parent segments. But the fields that are considered the key fields, are included on every child table. When they when they, you know, unload the the child, you know, segments, they they add fields so that you can know what parent it came from. Okay. So yeah.
+Migration to AWS
 
-I mean, like, if if we're querying, the o t 800, like, the policy number and, well, I I can't speak all the detail right there, what all the keys are. But, like, well, when you get to, like, the aux three, there's, like, three or four different segments that all have aux three information, but they'll all have the the key aux three, you know, keys for the aux three. And then you just join on those key the key, to be able to see that you're you know, you you have the children for that parent, you know, locks three. Anyway yeah. Yeah.
+Data Transfer to AWS
 
-It just makes it a lot easier for people who aren't familiar with d b two and be able to query. And by putting it into a d b two relational. It's a lot easier for them to make queries and do stuff than trying to do that stuff through IMS and its hierarchy structure. And, so they, and again, it's a snapshot of production, a day old production. So people can do what they need to do with it.
+The reformatted files are transferred from TSDEV environment to AWS S3.
 
-You know, it's pretty close to production. So but, yeah, that's that that I have all IDA process. It's been around a while. And we just like I said, even some of the stuff we did for the August just for history, they had a transactional version of stuff on AWS. We piggybacked off of some of that chain some of the stuff they did because it was already there.
+The data is stored in Parquet format after undergoing an ED conversion process.
 
-They spent two years to do transactional 800 to get it over to AWS. We're talking a whole movement of all the data first date and product type. They just did what changed from one day to the next, but a lot of the infrastructure was there from them. They put a lot of that out there. We piggybacked off of what we could from them, on, for what we're doing.
+The FTP process is used to transfer the datasets to AWS.
 
-So but, yeah, that as far as IDAA, like I said, it's been around a while, and we just kinda we looked at what they had, and there were some things we could use, and we just used them where we could. Awesome. So, as we have been getting few tables from d b two and few from IMS, so is there a kind of relation between these two databases? Like, something like, is there any in general, is there any queries that we need to execute, that has, the data comes from both d b two and IMS using the policy number or some another? Well, I'll tell you what.
+Metadata and Schema Handling
 
-I'll let somebody who's more familiar with the data. I don't know. Whoever Okay. Or Shane, whoever if you could talk about how how to relate or verify data or something. Mhmm.
+Chris's team creates metadata files.
 
-Maybe when you guys could speak more to that. It's possible, that there could be business reasons as to why you would need to query data between the two types of databases, IMS and d b two. But for the most part, I think, most of the time, it's going to be within, the same so you're gonna stay within IMS or you're gonna stay within d v two. But the possibility is there that you can cross between the two. And, I I've done it myself, and I haven't run into any issues doing it.
+The extracted data is joined with schemas before conversion to Parquet format.
 
-Okay. But so so I don't think there's any concern, between doing it. Okay. So but, essentially, we have, at any point, there is some sort of relation between them, and, there might be chances of having the query that needs to be get data from both IMS and d b two. Yeah.
+The policy number is assigned as a key identifier to maintain relational integrity.
 
-Possibly. Yeah. And some of the d b two tables are keyed off of policy numbers, so that would be really easy. Right? You have policy number on the I think Well, the IMS structures.
+AWS Athena is used to create temporary views for SQL-based queries on Parquet files.
 
-Well yeah. Well and and everything's gonna have policy number on it. Once once they're brief once it gets over to AWS at AWS, everything's gonna have policy number on it. True. Yeah.
+Partitioning and Archival Strategy
 
-Yeah. Because it's on that. MNR one, and MNR two. But once we get further down and and we expand into other, databases and tables, A lot of them a lot of the incremental the ones that we're moving incrementally, by state, by product, those are all gonna have policy numbers put into the headers. But the databases, that we're going to move over, just do a full move of the whole database, they probably won't have policy number on them.
+Partitioning is based on:
 
-And so we won't move those databases until all of the, products, all of the states, those are all for an office. Those have already moved to AWS. All of the policy based databases since I've already moved to AWS, then we'll move, those databases that are not policy based. That if that makes sense. Yeah.
+Database and segment type.
 
-Got it. Yeah. Yeah. And as far as whether there's queries, you know, like, I'm looking at the tables now. I am not an expert on those two forty four, but I believe, you know, the whole RWIP process is kind of a thing of its own.
+State and product type.
 
-And then like the f q seven eighty three, we you know, it's only a portion. Like, for service, sometimes, we need to look at what, some score information and that's you you get to the scores by going through the HUGS two thirty nine to the EC four fifty five, but then the information is actually on the e c four seventeen, which we are not pulling in the e c four seventeen yet. So, you know, the the the SQL where we're just saying give me the score received date, the latest score received. You know, like, couldn't do something like that, but you could get a list from the AC four fifty five how many scores are associated to a given policy number. And then, like, e.l, that is kind of its own thing.
+Termination date of policy records.
 
-It's, you know, basically, most of of the time when you're cornedi.l, it captures everything about the EDB entry, I think. And so you you wouldn't have a need, to my knowledge, to go anywhere else. But, anyway, yeah. I have I don't know anything about the f I six seventy, those tables. I I've never had to I'm not a SME on on on the data there.
+Non-policy-based datasets may require different partitioning strategies.
 
-Right. It's just it's just to to know that the possibility is there that, yeah, you we might have to query between IMS and d v two. Okay. So, if possible, let's say for any example query or something like that, if you can pass on, Shane, that will be great just for our analysis, going further. So Okay.
+Data is archived based on retention policies (25-35 years based on termination date).
 
-Okay. Is that the answer, Syed? Is that answer that question for you? Yeah. Yeah, Mike.
+Challenges and Considerations
 
-That is answered. And I do have a follow-up question, Mike. Sure. So for the data stores that, you know, like, Shane just explained that they will be moved as is, and they may not have policy numbers. And then Chris, you know, like, he talked about that the queries can be easier, but then there are some data stores that he has not looked into.
+Schema Standardization
 
-So do you think that in the upcoming times, there will be a need to apply some queries to the data, which is going to be in the raw buckets so that we can make it queryable based on the user's task? Do you think that such type of requirement will pop up? Do you buy raw do you mean the stuff that doesn't have policy numbers that we're talking about moving later? Well, I don't Shane, what are you guys' ideas related to that that kind of reference data? I think you were something you referred to before as that maybe isn't really tied to a policy.
+The schema for IMS and DB2 should be standardized.
 
-What plans do you guys have with that? I don't think their plans are gonna be any any different than what they do today with those. If there are, legal requests or or any other requests to query that data, they're just gonna query it using a different means. It's not gonna be policy number. So for those for those for those data stores, they would just have to use a different field, a different a different piece of data.
+Fields such as Policy Number (PLCY_NO) should be named consistently across datasets.
 
-That's all. Okay. So it means it's just the query part which is going to change. But now when we are trying to decide about the, partitioning and the keys that we are coming up with, so is it that for those particular data stores, it will follow the same suit? Yeah.
+Queries should be designed to handle data sourced from both IMS and DB2.
 
-Those, they probably won't follow because they're not you're not gonna be able to, they're not you're not gonna be able to link those data stores with the termination date. So those partition will probably be partitioned differently. I would still imagine that they would be, database table slash segment, state if we can. If not, then it would probably just be, office number. I mean, it was a a huge deal.
+Query Performance & Indexing
 
-Like, we did not have to figure out how to maintain the hierarchical structure for the IMS because IDAA did that design and and their copybooks have it. Right? But, like, that that's, important thing to to realize is that saved us a ton of time, you know. I mean, it's it's something that, you know, any anybody that understands IMS maybe could understand how to put the keys on the child segments, so to speak. And so, like, the risk we might have is that there's gonna be some IMS database at some point where it it it's not in IAA, so they didn't put that out there.
+AWS Athena’s indexing and partitioning strategies need to be optimized.
 
-There. Then we have a little more work to do. But in terms of the querying question, it really comes down to the team that uses that data from a service perspective. You know, that's why I'm saying like that. One that I'm not familiar with, my team doesn't have to service it.
+SQL queries must be structured to avoid full table scans for performance efficiency.
 
-So we don't have queries against it. I don't understand it. But, that's where we could reach out to, you know, like the the input fab team. But, we don't have a person on our ALS supplier team from input fab, but we could get some queries from that team to, you know, for the input fab stuff. So, our web team is right, maybe.
+Indexing strategies will be revisited based on consumer query requirements.
 
-Anyway, that's what I'm getting at. I think I think we have what we need. We're not gonna have to, like, to if if we, you know, if we have data that came to the IDA group, you know, we're we're we're piggybacking on that. We have what we need to do any query that service teams do today, I believe. Yeah.
+Data Verification & Testing
 
-Yeah. No. I understand now because, see, wizard team is more about the source data provider, and then there are consumption factors. And, see, we are going to be majorly on the consumption side, so we'll have to definitely look into this by understanding what type of tables or data stores are being moved. Based on that, what is the partitioning strategy?
+Data verification is essential before integration testing.
 
-And then, definitely, we have to include our consumer asks, so that we understand their queries better and type of servicing that we can provide in future. So thanks for, you know, like, sharing this information. Probably, you know, like, Arvin and, Sayed, folks, you know, like, we will have to gather this information from our end users. So please, if you can note that down. Thank you.
+Sample datasets (20-policy extract) are provided for initial validation.
 
-May I ask that question about the parquet format? Does it when you when you make those, is it does it have a concept of an index? Is it or is it, you know, you know what I mean by index in this context? Is that something you're dealing with? Yeah.
+Integration testing will be conducted in TSDEV and AWS test environments.
 
-We do we do, Jewel. Okay. Just asking. I I don't know about you about, indexing on those, but if it is in that I'm guessing that's some one of your concerns is to the index on, some some critical value like, policy or something. But yeah.
+Next Steps
 
-Well, like, we know certain types of, you know, SQL that we write, it could run forever if we, you know, doing a table scan kind of thing. So, like, we have interest in, you know, just seeing that we can do similar whatever we can do in SQL against IDAA. Can we do it in parquet or not? Right? Like, that's where he's I think that's where his thoughts are.
+Finalize Data Sample: Provide sample files (two segments minimum) for testing.
 
-What are we gonna run into from the indexing standpoint, you know, from a performance on the queries? Yeah. I think there are a few layers to the considerations going to parquet. One of the one of the things we've been asking questions about is, the partitioning because that results in separate, you know, files being written to the s three file store, which could be archived and restored independently of one another. And that's in addition to any considerations around indexing, which would speed up query performance.
+Schema Review: Validate field consistency between IMS and DB2 datasets.
 
-So, yeah, couple layers. Alright. So, like, I just if you did a phone calls in your query, is it gonna have under the phone calls the the partitions that you're using or some other, abstraction of of those? But and, like, if there's a partition or the, OT, some segment in the OT 800 and there's another partition for, a policy rank at d b two, would you have both of those, park pays in the in the in the front calls and say, okay. Give me everything that matches.
+AWS Query Testing: Validate Parquet format efficiency with Athena queries.
 
-Is that kinda how it works? So, Joe, having this discussion, I feel like like, definitely the folder structure that we are trying to form is going to be, you know, like the database and the and the segment and the source and all that that we are trying to keep in. Probably, that should identify the differences between the data for the same state and same type of a product in a different format. But if the indexes changes, you know, like, we'll have to definitely look into that design, probably. It to answer Joe's question.
+Integration Testing: Conduct AWS data validation with end-user queries.
 
-So we treat each so when we load it to, so it's parquet and in Athena, we have scripts where we can load each parquet into what we call a data frame. So it can either be at the, depending on what level. So you can load it within that folder, within the partitioning, or you can load it, it, like, specify, like, within the state, level. And then you can specify all the subfolders under that. And then we once we load that into a data frame, then we assign, like, temporary or temporary table review name for that, and that's how we use it in the SQL query.
+Archive Planning: Define a structured archival and retention strategy.
 
-Okay. Yeah. That helps. So there's there's kinda, like, a level of extraction beyond the physical layer of the, parquet use. That's what I'm seeing.
+Conclusion
 
-All right. Thanks. Yes. I'd like to add to Arvind, that is something called as external indexing. But at the same time, do you think that the schemas are going to be different for the same product, same state?
+The migration process follows a structured approach, ensuring that mainframe data is efficiently extracted, filtered, transformed, and migrated to AWS. The focus remains on query performance, schema standardization, and archival strategy to facilitate smooth data consumption and governance. Further collaboration will be required to refine partitioning and indexing strategies based on consumer needs.
 
-I had been, you know, like, asking my team about, you know, like, how the data looks like. Is there any difference, you know, like, that we can see from these two databases in a different way? Any, information that you can share on that, that will be awesome. I mean, if there are different overlays on the IMS segments, it's gonna come to you guys looking, like, different segments because they, you know, the file names are based on the overlay structure name instead of the segment that it came from. So I think that will be good.
-
-Yeah. I'm really waiting on seeing the data the way we are going to receive in our buckets so that if we can see and look at those schemas, doing a data analysis on our side is definitely a very important thing that our team will have to do. So, yeah, like, that is something that we will have to figure out then how to even store it efficiently. Second thing will be to query and third will be to archive. All those things we have to think actually once we start seeing that factual data.
-
-Okay. Yeah. We're when we start moving the data over and and, you know, and like I said, just as kind of a kind of a building off what you talk about, they we were provided a full, script capture of seven. And so we have generated the AWS process that we talked about. So we do have, you know, and that may get back to one of your questions you had a little bit later.
-
-We do have files out there of, like, basically, without limiting it by giving it, like, 20 policies or something. We do have kind of what the full for for for, commercial, for example, what the full load of commercial for debt policies would look like. We do have those in files based off of scrubbed Office seven. And so you have to basically, what you would see if you ran the full thing for Office 46, you could see kind of what you're dealing with that that is a benefit. I can point you at those and see if you guys have access.
-
-We wanna look at those or something. Yes. That's awesome, Mike. Thank you. Yeah.
-
-Okay. Yeah. Mike, just follow-up. Yep. So I and I saw that you've already sent all the metadata out there for the o d 800.
-
-Yeah. Yeah. Yeah. Chris Chris and and Joe did. Yes.
-
-Okay. But would be would it be possible if you could send us just maybe, like, at least two segments that we can play play with? By, I mean, by by segments, do you mean, like, the files you talked about? Or Yep. Yep.
-
-Yeah. You know, like, the Yeah. I mean, I get I I'll, I'll get, I'll get you a list of, you know, I'll just I could grab one of them. There's, like, 14 jobs that are out there for AWS to send the data reformat it. And I can maybe take one of those jobs and give you a few of the the files out of there.
-
-Just do you guys have access to l auto AWS? You know, I mean I think I I think I do, but would you be able to send it, like, transfer it? When I mean, transfer each other. I mean, we've talked a little bit about Okay. I mean, I I don't wanna make it complicated.
-
-Right? But we do, like, we've had some stories about, transferring, you know, the OT 800. But we don't we like, we don't like, it's if it's your team that needs to drive what what data we transfer and when, and it feels like it should be formalized in some way. Right? Because it has to get onto our board maybe because not that we can't do it, but it does take maybe more than a half hour.
-
-Right? That's why we probably should throw out a story or a spike to say that, you know, someone get the JCL set up to transfer these two. Right? Right. But anyway We think we get I mean, we can do that if we set a story up.
-
-We can the FTP stuff is done. We couldn't do it again. I think we probably based on what Alex said and what Shane gave us, we probably are gonna limit it. He had, like, 20 policies or something. So, I mean, we could rerun that filter thing through to generate those files again with just 20 policies worth of data for those, and then we could work to get that FTP.
-
-So, we've we've been hesitant to just transfer the full Right. You know what I mean? Like Right. Because that feels like, you know, we're gonna we're gonna bog it down. But anyway, like, who decides what we transfer and when?
-
-I I don't know. We we need help to formalize it, I guess. That's what I'm saying. And that's fine. I mean, the mechanism's there that we could try it.
-
-It's just like you said, maybe we need to formalize the story and also maybe just organize that my intent was if we did this, I would like to get the group to kind of maybe some most of the people here into Arvin, to look at that data again. You know, if we do the 20 policies, you could actually look it over on the AWS bucket and then but, you know, s three bucket. So And I'm just saying that because, what we're planning is to create, like, the scripts, for those tables before we even start the integration testing. So when we start integration testing next week, we would have the scripts that we would need for verification and partitioning, things like that if we could have a sample file. Especially, I will be gone next week starting Thursday.
-
-So we're hoping we can have, like, finalize some of the stuff before the start of the formal integration testing. So that's why we're asking for some profiles. Right. I guess then, Chris, do do we wanna proceed to try to get this done this weekend to get some story out there and get some of this I mean, some of this FTP? Well, like, we have we have Neil Sani has the the, eight eight hundred files ready too.
-
-Okay. But, Neil, is that based on the full capture, or was that based on a risk category risk category? That was reduced data. That was what we originally had under reduced data, and I had ran it through all of those just to With risk category code check on it, though? Is it limiting it to I I don't know what the filter file was.
-
-Right. Yeah. But the thing is too is that because that chain had me change this because this thing initially was private passenger. And he said, well, we're really gonna go commercial is the first thing we're gonna do. So I switched the risk I agree.
-
-I agree. I agree. I agree. Was built for Commercial would be better. But, anyway, that's why I said we need to formalize.
-
-What do you want and when do you want it? You know what I mean? Right. Good. Right.
-
-Yeah. That and that's fine. If you wanted this like I said, I can run the flow through. I can it probably takes at least about half a day or so to run it through. And if you give me 20 policies, if that's what we decide to do, we can get that set to go and then we can run-in the FTP process to see if that's gonna flow through.
-
-I mean, we can do that this week. We just gotta get a story together and decide that's what we wanna do this week and we can get it done. So, Chris, do we wanna work on that then? I guess it sounds like that's kind of a, high priority for them. I think so.
-
-But let's talk a little more about it. Do we want how many of the o 200 segments do we want? I mean, if we add them all, do you want them all? And do we want to do all of first category code o two? I mean, that'd be a high volume, I think, or relatively high.
-
-Not the highest as ever, but Right. Right. So there's 15,000 policies. There's 17,000 Yeah. Policies in the filter.
-
-So if we get the whole thing, you're gonna get everything that's extracted out from those 17,000, which I'd probably be a decent amount of stuff. So if you wanna do that or if you wanna stick with 20 policies and get the get the list that Shane gave us and just, you know, rerun the filter based on the 20 and shrink it. I mean It seems like that was what we were told before is that we want to start with just the 20 policy. Right. Right.
-
-Alex said that cheaper preferred that we keep it small initially to make sure if we had the issues. So, I mean, that's fine. We could do that. Just, if that's the direction, well, if we can get a story out there, we can run it. Like, I said here, I, you know, I don't wanna hinder all of your progress.
-
-But if we can have, like, at least two and whatever works for your team, you know, that will be good for us. By by two, do you mean two segments? Or we Two sec yeah. Two segments. By two by by segment, like, two files?
-
-Yes. Okay. I mean Well, I mean, we could take Yeah. We could take one. We could take one of the jobs.
-
-Just take We can probably do a few more than that. Not a few Yeah. Yeah. Yeah. Like I said, let's talk talk offline, Mike, because think I I think I will create a new story just to this, you know, this is a pretty quick, simple thing.
-
-Right? Let's just get it on our board, and then you can yeah. Okay. But, yeah, my just to recap what I'm gonna say in the story, I'm gonna say, you know, for the for the, limited 20 policies that are in the commercial, you know, believe they're all commercial. We will, you know Right.
-
-Choose a handful of segments from the 800 and get the data shipped over. Okay? Right. Ideally, like I said, we'll run this one job at a time. So I the easiest thing to do would be to run one of those jobs and there's probably eight or nine files in each job.
-
-So we could pick whatever file they want And just one one run one job to move to to remove the eight or nine for that. That'd be the easiest because otherwise, you gotta play with the JCL to take things out. It's just easier just to run one of the jobs. So we could just pick a job. Create.
-
-Yeah. So, yep. Okay. Sounds good. Okay.
-
-Appreciate that. Thank you. Yep. Yep. Okay.
-
-What was the say, what's what's next question? Yeah. Yeah, Mike. Thank you for that, files that you can able to send us. And the follow-up question.
-
-Right? So the, extraction and everything, you'll people will be extracting the data and you'll applying the filters and, you'll be applying some validations, all kind of thing. Right. Reformating. Yeah.
-
-Yeah. So reformatting. What exactly, these things means, to before you are passing the data to AWS? So a simple scenario of what exactly the filter means and what is the, data validation or kind of, the reformatting things, right, that you will be doing. Yeah.
-
-Yeah. I mean, the the filter just means that well, the filter process is that I don't when Dave Poppin was kind of the guy for our interview who's making, kind of the business case for what needs to get moved and how you move it. And so this filter process is simply putting down into JCL what they decided was how things were gonna get moved. It's basically that this filter process gets created in. It's just from a high high level.
-
-Once an office is dead, all the policies are dead. It's been dead for two years. Then we're gonna move it over and to identify what, you know, what policies basically, things have to be held over on AWS side once they get moved over there for twenty five years or thirty five maybe depending on hold. So, basically, each policy that we decide to move will have a termination date that just says for that policy, the last activity on that policy was it terminated as of this date. There's more act no more activity and terminated on this date for this policy.
-
-And then the clock starts on their end. At some point, twenty five years from now, they can add twenty five years to the date. We went over and say, oh, it's, you know, it's it's 2025 and went over and it's twenty twenty twenty fifty. We can get get rid of it. So, basically, part of that filter is to say, this is when the policy is dead and can't end.
-
-And when it was terminated, that's put over into AWS so that down the road, they can partition off one of those fields they want to say. This was a termination date. And at twenty five years from that date, we can get rid of that policy from AWS. So, basically, the filter process just identifies dead policies that can be moved. It also identifies what the date was that they were moved, and we do it by state and by product type when we set the filter up.
-
-And, basically, it says, okay. Here's my big extract of all the data I got. And this are the for example, your big day, your big extract may have commercial, may have private passenger. But maybe at this point, you're only interested in commercial. So you wanna shrink that list down by you don't wanna deal with private passenger in your filters because you're only dealing with commercial.
-
-So you join your filter with your big extract, which not only has private passenger by commercial. And when you join them, you're only left with commercial. And on that resulting file, it also has the termination date of that policy. So that's where the filter comes in and it's joined to big extract. Result is you have a smaller file that's only particularly for the state you're interested in, the product type you're interested in.
-
-It'll tell when that product that policy terminated. We all be in the header of that of that record. And then that gets moved into the process that Neil was working on too. Basically, like I said, when it goes from being adding the header, it goes into the AWS process where they've got to, change, binaries to pick, change, pack decimal to pick, put little diameters between each field, and fix stuff that is, is not acceptable. We think the AWS, maybe weird characters that we don't accept.
-
-We may have to fix those foot blanks or something in there. So basically, you're taking and reformatting that data into a format that you think there'll be more acceptable to AWS and then that thing is shipped over to AWS at that point. Awesome. So is this a kind of, query that you people are running or in it, tool that you people are using for, extracting these filters out of QED? It's it's it's a j it's it's JCL.
-
-Oh, okay. It's basically it's a JCL. There's a lot of sort d's in it. A lot like I said, a lot of it is basically based off of the man who Dave Hopkins, the guy that kinda is kinda driving the the business behind business case behind how we're doing this to a good extent with some additional things from Shane and and the Civil's group. And, and basically, it's just a a big JCL that does a lot of sorting, a lot of conversion updates and things like that.
-
-And it's all based off of Dave Poppin and what he said. This is what we need to do with this. And so we built the JCL out to do that. And, basically, it the result of running it is you can get a file that, again, will have your policy number and your here real quick. You know what?
-
-Hold on one second. Sometimes it's easier to see something in that. Okay. AutoAWSStarStarDotRGG28B. Yeah.
-
-I'll I'll share it in a second. I'm just trying to bring it up. Okay. Just share this real quick. Listen.
-
-Sometimes it's easy is to see a picture that, we explained. So and do this real quick because my eyes aren't good. I don't know if you guys' eyes aren't good either. But here. Okay.
-
-That's our see that? Is that showing up? Do you guys see it? Yeah. Okay.
-
-That's our filter file. This is gonna get joined with every extract. And in here, you'll see you got the state indication. This is the termination date for that policy. When did it that policy terminate?
-
-That's the termination date right there here. And then, again, it's the repeat, and then it's the whole policy number. This is the state, the unit digit, and the seven digit policy. So, basically, you take each of these would take be joined up with the extracts, and the extracts will have that policy number in every record. So when you join them, you join them by that.
-
-Right? And now all of a sudden, you not only know this, but you also know what the termination date is for that policy and it's on every record. Okay? Does that make sense? Yes, Mike.
-
-So essentially, these are all the filters applied in JCL. Right? So Yep. These are these are the filter files that get applied to the extract files, and they match up by policy number. And you'll get the other information you need in there.
-
-So that's that's when we say it's the the filter files starting with the extracts, that's what we're doing. And also by having this again, you're limiting what extract you're dealing with. Right? Because this is right here, this is only commercial. We won't find a private passenger in here.
-
-So we put the extract that you got you started with is gonna have both. Right? But since you're joining in these policies only delay relate to commercial, you're only gonna have a final result of joining with the filter of commercials. But they're also gonna have the termination date on there too. That makes sense?
-
-Yes. Okay. So that's that's yeah. That's what that is. And like I said, then I'll stop sharing.
-
-The rest of it, you know, like I said, they just, you know, we do Neil has worked a lot on the reformatting program to do what we talked about. He's got a lot of that work done to basically to to reformat the data into something that's acceptable AWS and then it gets shipped over to AWS. Yeah. I have a question regarding that. So when you build the metadata and it's regardless of whether it's IMS or DB2, Are those, like, other columns going to have the same, column name or the metadata?
-
-That's Chris. I'll leave that to Chris. That's right, Chris. So regardless whether it's Steve's show or So what we can put have a different name. Mhmm.
-
-Well, I can put the header copy book. Let me see. Is your Yeah. The second part of our name that we use on our side. There's the field names from the copy book that is the header.
-
-So, like, after it goes to the actual table, it'll put, like, the database and the copybook name in there too. But but would it be, like, the those the the state code and the term date, you know, y y y y. Whether it the copybook is for a DB two table or an IMS, it will have the same name. Correct? So you're wondering if any of those fields I just typed in are on any of the tables?
-
-I don't know, but I don't think so. But, like, p l c y n o is a little suspicious. I wouldn't be surprised if someone else used to that name for the policy number field. Right? But, PMR tables, IMS anyway, don't usually, they usually they're they're I don't think I've recognized that.
-
-And, anyway, yeah, that would be a problem when we compile because we have duplicate names. Right? So I think we'll run into it and we'll we'll no. But I I thought you add this, like, in all of the metadata. I thought you add this, like, at the beginning.
-
-Correct. Is that regardless whether it's an IMS segment or a DB to table? Yes. Yes. Correct.
-
-Okay. That that what I put in there, the header would be on every single file that we transfer, which Okay. Thank you. So, Chris, do you think that, like if if it's for all the files, whether it is IMS or d v two, can we standardize the process on our raw buckets? In a sense, let's say policy number, the way you have shared it's PLC by n o and then it's it might be different somewhere else.
-
-Can we come up with the same terminology so that the raw bucket looks same? Yes. I mean, that that that is the scheme will say it's that p l c y n o that then they have the 10 digit bounce number. It doesn't care about the car number. Some tables would carry a car number too.
-
-But I think, yeah, there might a lot of our tables have the policy number then repeated in the actual unload of the data after the header. Right? So that's a little bit confusing, but that that, you know, that's because that's just, you know, you know, how it is. So can I can we safely assume that the schema for IMS and b b two is going to be the same? Is that a correct statement?
-
-As far as the header, yes. Yeah. Okay. So that is at least a good news, actually. But now, during the start of this session, we talked about different data stores and type of things that we are going to get through.
-
-Probably, this is true for the first fourteen states or the four fourteen data stores that we are trying to do. Will it be the same for others that are going to be there? Because that's an upcoming thing and probably, you know, like, as a team, we may not be aware of what's there. I mean, I think it's I don't see I mean, this is kinda standard because we're we're talking about IMS and we're talking about d v two and this is kinda unless you see something, Chris, I would think, generally, this is gonna be the same. Right?
-
-I don't see why I think I well, like, Shane made the comment that we're gonna put the policy number on every it's some of the tables aren't policy based. But because the header has the policy Right. So anyway Yeah. I mean, I think I think the like, Shane's talking about those tables don't have, because those are just, like, parameter tables. Well, even some of the tables, like, the RWAP tables have a document ID or something.
-
-Right? I can't I can't remember. They have doc. They have some in our current scope that our policy had been placed. That's what I'm talking about.
-
-But you're adding but you're still adding the policy on those because the doc ID still goes back to a policy number Correct. Through the use of other tables. Well, like, I like, those are 2 ones. I haven't been intimately involved in the 2. Right.
-
-Shane has, and he says that we'll have a policy number. Everything that we've done so far has at least one table in the group that has a policy number, and they use that as the driving. When you join that with the filters such as a policy number and the result of that join is a dataset that will have policy number on it and also has a linking field in it that will link to the other tables that don't have a policy number. So then resolve this at those others that don't have directly have a policy number will have it through the one table that had a policy number that they'll link with. That's kind of the reason why I was asking before, is there any expectation that the header be unique on the AWS side?
-
-Because you on those, you want documents. You have duplicates of that. And there won't be any distinction other than the data inside the payload. I don't think so that there's a need of that. I mean, you can go ahead and talk about it.
-
-I I I think that's an Alex question, how they interpret the metadata if it's not unique. If you have a field name, that's not unique. So I I don't know how their conversion engine the breads that. Well, I don't think he's on the field name so much as what we chose to put in the header. If we consider that entire header a key, it's not unique.
-
-There's gonna be multiple rows that have all the same values for those things. I guess it would Oh. Yeah. I mean, are you talking Joe, are you talking about data or field name? Because I I thought you're talking about field name.
-
-For the for the case where you have a a mini to or one to many for policy to document ID, for instance, there is no document ID in this in this header. So you're gonna have multiple of the same headers. It's not contained. Yeah. Yeah.
-
-That Oh, yeah. To be clear. That that should be fine. Yeah. Okay.
-
-Just making that was something I was wondering about. There's no expectations of of, being duplicated. Sorry. Yes. Because, we're we're not actually defining when when we did like, in DB two.
-
-Right? You define the key. We don't do that in part k. I know we have only five minutes. And sorry, Sayed.
-
-We have been talking a lot. But based on this discussion, I think it was very good to learn from the source team side. So thank you very much for sharing. And what I feel is that before the data being moved, we as an island team would have to move in parallel to understand the data sample so that we can conduct our own data analysis. That's significantly important for us because, we have to understand the queries by our consumers.
-
-Not only that, how to store in s three, apply index or partition or archival strategy. I think getting data from your team is going to be, must for us so that, we really understand what we are trying to do on our side. So that is something that I will also talk to Sybil, but, that's a ask and as well as we need help from you. It might be nice to to to have I don't know where to put a list of, you know, what data data you you know, like, I've been talking about formalizing the data. What do you want and when?
-
-Right? If someone could drive that down. I'll create the story like I talked about. But as far as, you know, what comes next, let's let's try to put it somewhere where we can all agree on here's Right. What we're gonna do next.
-
-Right? That's that's fine. Yeah. We just need a direction about what we wanna do. We can get the data there just to decide how the volume and what you want.
-
-Okay. That will be awesome. Thank you very much. I do not have for right now questions, but it will be for later sessions, but thank you very much. Okay.
-
-So I'm sorry. I think we only left about four minutes. I don't know if there's something else you had. Yeah. I think we have got a lot of questions has been got answered.
-
-But before we wrap up, right, Mike, so you people are actually using the different environments and I saw that there is something called DSDEV and DS TCP Plex. So is that these two environments are same and, you people are having a different environment for prod? Just wanted to get information on that. Yeah. Yeah.
-
-Well, for the integration testing, we're not using TCP Plex. I'm aware someone else knows something. I'm not aware of. We're we're basically for integration testing or test stuff, we're gonna be doing stuff from TSDEV, which is our testing environment and putting it into the AWS test server that Alex Alex's group set up. So we're going to TSS dev would be if we ever had a need to have system test test stuff for us, and there's no need to this effort is not going through our system test team.
-
-So then yeah. So, like, our development team would do everything on t s dev. And then that's where, actually, Joe and Mike I did reach out to a friend of mine who, is in the structure to Steve Sewell, and, they pointed me to some, but, anyway, I'm I'm trying to track down they think maybe this scheme of the the copy books do get copied to Oh. Data set out in production. But Alright.
-
-They couldn't couldn't tell me what which one, but I I have a work group they want me to create. Okay. Ask it to but, anyway, I'll try to track that down. Yeah. But yeah.
-
-That like, we're we're trying to track that down because, you know, when we generate a schema from the copy book, we're doing that on TSDEV and we have this concern about can we transfer that to a production or or or should it just be transferred from the AWS test server to production? And so, anyway, but if we can run it in production, that that makes it easier maybe. Right? So we're trying to you know, there's a couple options on how that might work, and we're we're trying to try that decision. So more to come there.
-
-Okay. Okay. So yeah. So for now, we we are just dealing with TS dev environment for our testing, integration testing, and stuff will get moved from there to the AWS test server. This is the system.
-
-Yeah. Yeah. Thank you. Before wrapping up, you can just send us the entire workflow that we have been discussed in the Yeah. And then, if you can able to send us the data stores that, the 14 data stores, these turned any file sizes, approximate file sizes that you have in, that will be great, Mike.
-
-Okay. Yeah. Well well, I I can, like I said I can put the 14 data store. We we have that in our EOT, and I'll just cut and paste it. Well, the yeah.
-
-Yeah. Let me take out the three that got Yeah. Now here, I got it. Did Shane did Shane send the, the link to the to the, other flow? Is that it?
-
-Yeah. There's a there's a, topology link Okay. Above that has the same information I just paste in in a picture format. But that is, like, the did I not did I miss the IMS? Yeah.
-
-Let me hold on. Let me get the IMS too. The IMS, I just have the database names. So there are like you said, there's a 17 l t 800 segments. Right.
-
-Yeah. Actually, we'll need we'll need try to give you the list of all the segments for the IMS. But that's what I have in the OT right now is just the database name. Right. So that gives you the the database breakout.
-
-Out. Shane gave you the link to the flow. So that'll give you the kind of the flow that you say you were asking about. Yeah. Then it'll show the flow.
-
-So, basically, what I can do is I can take the 800 AWR stuff that I generated, the full one for for, for, 46 for commercial. That's the one I did. And I can send you the list of the datasets and the sizes that are on t t s dev for those. Yeah. That that's awesome, Mike.
-
-Yeah. I think we are on time. And if you have anybody has any questions, we can reach out to you. Yeah. Okay.
-
-Sounds good. Alright. Hey. Thanks, everybody. Thank you very much.
-
-Thank you, Rob. Appreciate it. Bye. Alright. Have a good day.
-
-Who else is not there? Tim is not there. You could join.
