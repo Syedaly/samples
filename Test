@@ -1,14 +1,36 @@
- Option 1:
-For Data in a 25-year Retention Category with a Trigger Event of Data Created/Received:
-The data can be moved to Infrequent Access(IA) Storage 5 years after the data is Created/Received
-The data can be moved to Deep Archive storage 20 years after the data is Created/Received
+in the below policy I need to update the resource to have access to only this workgroup 
 
-Option 2: 
-Data can be moved to Standard Storage(Frequently Accessed) for 2 years
-Data can be moved to IA storage for 3 year.
-Data can be moved to Deep Archive storage for rest of the years
+workgroup name in athena: sf-3333-use1-test-333-athena-workgroup. Can you update below json?
 
-Option 3: Combine Option 1 and Option 2
-Data can be moved to Standard storage for 2 years after the data was Created/Received and the data has not been accessed in 1 year
-Move data to Infrequent Access Storage for 3 years and if the data is not been accessed in 2 years 
-Data can be moved to Deep Archive storage for rest of the years
+{
+    "Statement": [
+        {
+            "Action": [
+                "athena:ListWorkGroups",
+                "athena:ListTableMetadata",
+                "athena:ListNotebookSessions",
+                "athena:ListNotebookMetadata",
+                "athena:ListNamedQueries",
+                "athena:ListDatabases",
+                "athena:ListDataCatalogs",
+                "athena:GetWorkGroup",
+                "athena:GetTableMetadata",
+                "athena:GetSessionStatus",
+                "athena:GetSession",
+                "athena:GetQueryResults",
+                "athena:GetQueryExecution",
+                "athena:GetNamedQuery",
+                "athena:GetDatabase",
+                "athena:CreatePresignedNotebookUrl"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Sid": "AthenaReadOnly"
+        }
+    ],
+    "Version": "2012-10-17"
+}
+
+User: arn:aws:sts::756033938671:assumed-role/sf-pcmngd04-autolegacyilm-athena-read-role/syed.a.shakeel.vaa3am@statefarm.com
+Action: athena:ListWorkGroups
+Context: no identity-based policy allows the action
