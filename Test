@@ -1,20 +1,2344 @@
-next level so for example if this doesn't have it means it doesn't have okay it has only its own just one chain one chain it is root chain and it doesn't have anything yeah but if you want to see an example of if somebody has you know next level you can see here right for example this one has just one level right you can see under that there's a chain only but it doesn't have any sub chain okay okay so and similarly you can see the same example okay like you have this your meta chain and then after your sub like a like a next chain and then sub chain okay the same example the out sum right that I was showing you so you can see here also the same example basically yeah it may come down maybe but yeah like my point is yeah like this is the structure like like this is this is an radiative structure where we have more information as well for example you know this is the hierarchy right I'll show you like three level okay and then after we have a runtime you know like for each process you know how much time it is taking minute and second and and the frequency you know like half frequent these runs monthly weekly or whatever or I know and and in which system and also like this is a flag which you can see okay it has only one level right it has two level like month and chain and if some has you know like all three level you can see like with this flag so like like you know meta and chain and then sub chain so we have this table available and if you see this is okay for you and this is also you know one more technical stuff you know like it's it's something kind of a grouping okay that is for purpose but yeah like you know how the processing are grouping up in which area like you know like the pm or or like for yeah like like it's for functional perspective like you know in which functional area these these processing are grouping up so yeah so this is the this is an summary table you know architecture where we have these columns already available and after that like I'm just trying to finish first two things and then you can jump on to your topic so this is your summary level and then after you have your basically you know next level like you know like like step so if you want to see for example if you want to see one chain right so I just wanted to show you like okay if you want to join in the next level so what I'm trying to say we have put it out in a next like it like a separate table okay because these are steps and it requires you know more logic to find the sequence number blah blah etc right so so because of that we wanted to keep it separate okay so I'm just picking one example of one process to show you you know how the steps are formed okay So if you see, 
-right, this is the next table which you can join, of course, from the previous table by like by the chain, okay. So but it is this table is the detail table like when you like a step level, you know, like step by step, you can see what each step is doing, okay. 
-So I picked one table and I show you parallelly the parallelly I want to show you in the system, you know, so that you can understand more better way the same, let me open the same process sheet here, yeah, so if I open the same chain here, so you can see, right, so okay, so if you understand from that way, so you can see, right, this is my outer chain which has two nodes parallel, okay, so if you see, 
-right, one step number, it means these two nodes are parallel and what are those two nodes, you can see the name here and type as well, okay, name is again a chain, right, like I said it is a nested, like it could have a, under that it could have a chain also, right, so it has one chain and then another one is loading, so loading is in our term, loading is nothing but, you know, like like a data comes from source table, 
-like from a source system to our raw basically, you know, so that is happening here, you can see, right, these two are happening parallel, so we are, you know, we are basically storing this information in tabular form like step by, we have this flag which shows, okay, what are the parallel nodes, okay, and then serialize, like, okay, next are the serialized, you can see, right, all these steps are happening, 
-and what they are doing, what are the logic in between, we have captured, you know, all in this table, basically all steps are covered, you know, through that way, and what are those steps, you can see, step id, so these are, again, these, to join further we have this column we will discuss later like to linking the other table but yeah like after that we need to join based on the chain ID and step ID why because now that it has right more steps like you know like it has own step so we need this will work as in linking key right from like for other tables that will come you know later we will discuss later but as of now I just wanted to show you first two tables those are summary and you know and the step level details covering part and yeah in this table you will see right if a filter is applicable or not right if it is yes so our next table is basically after that will come based on just filter that okay so that but yeah but in this table we are marking you know filter like in which step we have any kind of filter okay so we are covering any sort of filter again I don't know, 
-like in current word, because I think in current word, it's not like in AWS, right? You are not going to apply any logic in the raw level, right? Because, right, so you may, so that filter part, you may need to think, like, you know, like when you will move from process to analytics, there you have to, because for us, yeah, it is like kind of a pre-processing, we are, before loading itself, okay? 
-We are not loading the entire data. We have put this filter during the load itself, okay, into our system. So, yeah, so that, that, I don't know, like, how do you, yeah, like, like, do you adjust? But, yeah, that is one point. 
-I think this point, yeah, maybe you can discuss, like, in current word, we have filters on the initial level, like, you know, before bringing the data, and I don't think so. You are allowed to do on your level, or if allowed, you can check, okay, that part. 
-But, yeah, in this table, you can see more information, like, you know. Is there, why the filters are there at this level? Yeah, yeah. Because of. Yeah, so it's a reason, right, so, yeah, so it's like a customized data. 
-For example, you just want to load daily last three months of data, not the entire data, right? And they don't have any delta capability, okay? So, it's, like, it's about the delta feature. Maybe, in your case also, if you, like, in click, right, if we do a delta, there we can do it, okay? 
-So, that we can discuss, okay, that part. But, yeah, this is a point. Other than delta, is there something else? Because, see, basically, expectation is, is there, there was any requirement other than delta? 
-Was there any other feature in time, please? Yeah, I mean, we have, yeah, we have many, we need to check, like, one by one, like, there are many, right? Okay, so, yeah, I got it, but is that, is there a reason, in terms of the, because we don't want, like, there are a lot of volume of data, and we didn't want a lot of volume. 
-We wanted to say certain things or was there any technical reason we had a technical reason yet Technical reason like I said, right like if some data source are not data capable So instead of loading the entire data daily, right you just do like last three months of data only that is you know Just just from up like I mean just to avoid, you know daily full load, right? 
-So that is one reason because there are in a city there are many acceptor where you don't have For you know data capability, right? That's why so you do kind of a customized and in some cases Requirement also right like they just they just need they are just interested You know the latest data like last three months of data only it depends right? 
-Like I said, right it depends, you know Table to table or requirement requirement How would we handle that in quickly yet Because if the load is going to, I understand like load would come through quick and click replicate and if there are dentas enabled I think doesn't matter we will do it but if there is going to be full load which is going to take a lot of time then that needs more discussion on really do we do full loads every day or do we do some customization what has been done in the past like what we have done earlier. 
-Correct correct. So yeah in Calyc maybe you can apply it there they have a delta customized delta facility as well so but yeah that you can I mean that this would be listed down like this is a raw level where they are doing the finter yeah if you see right PSA whenever you see target is PSA that is a raw level you know happening so PSA is our persistent you know staging area like our raw data you know load side area so that that we are applying yeah. 
-So these stages know after that in AWS perspective we will be having raw process analytics and everything right in terms of SAP the target system that you are showing here is whichever the things that you will be showing or the output summary that you have been showed or output is that considered as a initial set of from the landing to raw is that the stage that it is. 
-No no no it has all stages so like like here you see right this is the complete stage like tell analytics so if you see right our we have a cube right see so this is terminology like like we have a if you see like a naming convention that we follow or opens you know your ODSO that is nothing but your process layer okay and then you have a CQ Q is you know fact dimension table like which is your basically your analytics layer. 
-So we like these have so basically you just understand so all it's an entire step function what is doing from raw to analytics you know every step is there okay okay so you go step by step you see right step number so that that I mean like the step number is nothing but that shows you know for the but again like I said it step function is contains one more step function right so that is change right so so basically if you understand if you think about it as a you know overall perspective so like this is your any step function right which is which is processing your step function you know this way but parallelly it has nested right step function inside that one more right this one yeah parallelly that time yeah yeah yeah so so yeah so if you understand it's an like a overall you know just try to understand like you know I'm just trying to explain like it has like a board so when you when you take the steps of this team it will show you this also as a step right because this needs to be triggered under that but if you want to see the detail of this particular that that is available also right in the in the same table because right now I have put it hard coded right only outage that's why it will not it will only show steps of this particular chain okay this step function like for outage only it will show so whatever we step under that it will show me only those steps okay the step steps that you have been explained here it is a chain is a parent kind of thing unloading and where is exactly the logical implementation of or any any procedure that is getting triggered and doing some logic and proceed proceeding to to the next step yeah so so so like the logic and all right like we said so here we have only steps and we will go right like detail in detail like in each table so like basically we have splitted the entire you know like a like a data flow into multiple tables just to cover because if we put all things in one place it will not you know like work or it may compute so if you just understand our first table is giving you just a high level hierarchical structure of process chain what are all process chains what are the dependencies like you know the sequencing and all and for each processing next table will give me me the step by step flow okay and now the next table after that you would have like you just think about step by step you are going into you are digging more right next level so now the next level next level means like the next table when I will show you that is that is a separate table for only four filters you know like what are this filter because here I just marked the filter okay this step has some filter okay but what are those filters so those filters are covered in the next next table so if you see right filter out so here if I show you the same chain okay if I show you the filter for same chain so you would see the you know if you remember right in the previous one okay let me let me let's keep the previous one executed okay so if you see that this is the right here step level you see right you have a filter in four places right one two three four correct so in the next table you would see only those four okay and what are those four so you would see here okay what are those four again this is you know again like this is again not in detail again it is I will I will tell you so this is again what are those filter like if you understand your secondary logic right so secondary logic We need to. 
+Data Lake Final production deployment-20241107_213240-Meeting Recording
+
+0:02
+Yes, account share, Yeah, that that has to be account share PF has to be updated, correct.
+
+0:10
+That is only change other than that, no other changes there.
+
+0:14
+So can you maybe that is also something that you can let Amar know and then we can do that.
+
+0:19
+So Amar, this is the change to drop the additional roles that are there, right?
+
+0:27
+The one with the prefix of data leak.
+
+0:30
+That's correct.
+
+0:31
+So that we don't need right, So that we are going to drop it off drop off.
+
+0:34
+That is the only change.
+
+0:35
+Other than that, there are no other changes that needs to be declared.
+
+0:37
+So we can you can understand how that is also done as part of this deployment.
+
+0:42
+Then we have to start from dev.
+
+0:46
+You guys do we have the the checklist, right?
+
+0:48
+So we had a checklist that we were gonna follow and people were doing it, but now other people are doing it.
+
+0:54
+So, but Devraj, can you pull up the deployment checklist and go through the items as we do the work?
+
+1:03
+Yeah, we'll do that.
+
+1:05
+Meaning because we are walking Amar through the steps, right?
+
+1:10
+So I wanted him to share so that we can see what is being done.
+
+1:13
+And then in, in parallel, I will go in and update the Excel sheet.
+
+1:16
+So now updating, That's that's what I'm asking.
+
+1:19
+Perfect.
+
+1:21
+So, yeah, so Amar, I think, yeah, so, So Sourabh, why don't you walk in through the changes and then, yeah, you're right, we'll have to do it from dev and in prod.
+
+1:33
+When we reach to prod, we will have to destroy and deploy the changes.
+
+1:40
+Yeah.
+
+1:41
+OK.
+
+1:42
+So can you so I can open the sheet as well.
+
+1:45
+Just give me a second.
+
+1:50
+So this is the sheet you're talking about.
+
+1:54
+Yes, correct.
+
+1:56
+OK, correct.
+
+1:59
+But it will meaning this will not include the steps that we are currently doing, right, The changes that that is, that is OK.
+
+2:07
+So you can just go ahead with that.
+
+2:09
+And then when we come to the point of moving from QA to prod at that time we can go ahead and and make the entry in the Excel sheet as well.
+
+2:17
+No problem.
+
+2:17
+Yeah, go ahead, Sir.
+
+2:19
+Yeah.
+
+2:19
+So can you duplicate this page, Amar?
+
+2:26
+Or go to click on the Yeah, yeah.
+
+2:31
+Click on this, the data link dev in environment in the bow, you can see, Yeah.
+
+2:37
+Go to this Producer account shared repository.
+
+2:43
+Scroll down.
+
+2:47
+Yeah, producer accounts shared.
+
+2:54
+Yeah.
+
+2:55
+Can you create a branch from this?
+
+3:00
+Yeah.
+
+3:01
+Inside this, the left hand side, see branches.
+
+3:06
+Yeah, yeah, yeah.
+
+3:20
+Should I create it from the main or main?
+
+3:22
+Main, the child branch?
+
+3:23
+Yeah, OK.
+
+3:24
+Main.
+
+3:43
+Yes.
+
+4:00
+OK, switch to that branch.
+
+4:04
+OK, so you want to do from the Visual Studio or directly?
+
+4:08
+It's A1 file change, so we can do directly from Yeah.
+
+4:13
+Alexander.
+
+4:14
+Yes, yes.
+
+4:14
+OK, go to click on that Athena workgroup- support dot DF file.
+
+4:20
+Yes, so, so yeah, you can see there are two resource block with 1 is a suffix, 1 is a prefix.
+
+4:33
+So second one we are going to use that is working fine for our our producer accounts.
+
+4:40
+Yeah, first one we are going to this is not working.
+
+4:43
+So we'll remove this.
+
+4:46
+So from line 1 to 29 you can remove.
+
+4:53
+Yes, you can commit.
+
+5:31
+And then data pull request, right.
+
+5:34
+This is the only change we need to do.
+
+5:35
+Yes.
+
+5:41
+Is Anthony in the meeting?
+
+5:45
+Yep, I'm here.
+
+5:47
+OK, so I'm adding you as a reviewer.
+
+5:58
+Yeah.
+
+5:58
+So you should get that approval.
+
+6:00
+Anthony, did you?
+
+6:02
+Did you get it?
+
+6:18
+You can provide him the link also.
+
+6:20
+Yeah, yeah, yeah.
+
+6:43
+OK, so it's approved.
+
+6:45
+Yeah, it's approved.
+
+6:50
+It delete the prod development after merging.
+
+6:56
+I think that should be OK.
+
+6:58
+Yeah, yes, OK, so now you can go to commits.
+
+7:07
+Yeah, create A tag.
+
+7:09
+So from here it just did right.
+
+7:11
+OK, Yeah, create the the latest one.
+
+7:17
+In the yeah, latest commit you can see.
+
+7:20
+No, no, yeah, same here in the commit swap section only.
+
+7:24
+Yeah, yeah, in the link latest commit you can see three dots in the right hand side.
+
+7:33
+Yeah, yeah.
+
+7:35
+Create a tab based on 95295.
+
+7:39
+OK, yeah, remove this tag name and give V small.
+
+7:48
+You can see 0.3.2 is the latest.
+
+7:51
+After that you can give 3.30 point 3.3 yes.
+
+8:00
+And you can give the description.
+
+8:09
+No change on this challenge with Jim.
+
+8:12
+The challenge.
+
+8:13
+My next challenge is with finish the line.
+
+8:17
+But you should try not be.
+
+8:18
+Why would I listen?
+
+8:26
+No.
+
+8:27
+Yeah, open the Visual Studio.
+
+8:34
+Have you cloned the dev account repository?
+
+8:39
+No, I didn't.
+
+8:40
+Can you please do that?
+
+8:44
+Yeah, I'll do that.
+
+8:44
+Yeah, Visual.
+
+8:48
+Give me a second.
+
+8:50
+Yeah.
+
+10:23
+Hi Amar, are you waiting for my input or No No no I I just cloned it.
+
+10:29
+Give me a second.
+
+10:30
+OK sorry sorry I was doing one on the screen.
+
+10:34
+OK.
+
+10:38
+Can you please clone all the others account also test in QA.
+
+12:06
+Hey Amar, can you show like after cloning what next step you are doing on the other screen so that it can be captured in the recording?
+
+12:14
+Oh sure, sure.
+
+12:14
+OK, so I I'm just cloning right now to my local.
+
+12:48
+Dev test, QA next prod.
+
+14:06
+It's done, Omar.
+
+14:08
+Yeah, it's done.
+
+14:10
+OK.
+
+14:10
+Can you open the Visual Studio?
+
+14:22
+OK, so this is my Visual Studio.
+
+14:25
+Yeah.
+
+14:30
+Can you open the folder where you have kept this folders.
+
+14:35
+Yeah, Yeah, I can do that.
+
+15:05
+Yeah.
+
+15:06
+So this is a dev.
+
+15:08
+OK, Can you open that terminal your first update here in the count shared you can see producer account shared module.
+
+15:21
+We have line #5 Yeah, so there we have provide the source link that is our git repository link.
+
+15:29
+OK, correct.
+
+15:31
+Yeah.
+
+15:31
+And currently it's pointing to you can see the reference equals to version 0.3.2 which we have updated to 3.3.
+
+15:39
+So that one we have to update first.
+
+15:46
+Yes, open the terminal ones and save this file and then you can.
+
+16:06
+Can you use the settings autosave?
+
+16:14
+Autosave option is available in the Visual Studio.
+
+16:18
+It will auto save your changes.
+
+16:21
+Yeah, settings click on settings yeah, auto on focus change yes.
+
+16:33
+And now just close this.
+
+16:39
+OK, fine.
+
+16:50
+You have to go inside the folder.
+
+16:53
+Which one?
+
+16:55
+This data data link UC1.
+
+16:58
+OK, you are already inside.
+
+17:00
+Yeah, yeah, yeah.
+
+17:02
+Just run the terraform in it.
+
+17:06
+So I don't need to.
+
+17:07
+OK, probably this is, yeah, this is this part is later.
+
+17:11
+First this will run the terraform commands.
+
+18:38
+So this we need to change this version.
+
+18:42
+Oh no, it's supported of code version provider.
+
+18:51
+There's no support working.
+
+19:32
+Can you run the date pull ones?
+
+19:45
+This is up to date right?
+
+19:47
+Because I haven't committed the the latest?
+
+19:50
+Yes, yes.
+
+20:15
+And the chick.
+
+20:57
+Oh, is your terraform installed locally?
+
+21:01
+No.
+
+21:01
+Return the setup.
+
+21:04
+OK, yeah, I think you have to do the setup.
+
+21:10
+It's a wiki page.
+
+21:15
+Can you go to the open Azure DevOps?
+
+21:23
+Yeah, has it to ping you the wiki.
+
+21:28
+Try running your version on your laptop on on the console on my terraform- yeah, version.
+
+21:37
+No, I I don't have it.
+
+21:39
+Yeah, yeah, this developer first time setup instruction, yes.
+
+21:54
+So so three-part is done.
+
+21:55
+So you have to install the terraform origin one point 9.5.
+
+23:03
+OK so this is my.
+
+23:16
+You have to create a folder bin and inside this you have to keep the terraforms file.
+
+23:49
+Yes.
+
+25:31
+What are you updating in the edit environment variable?
+
+25:34
+Yeah, OK.
+
+26:03
+Yeah, my system admin password is not working.
+
+26:06
+No, no, you it will not ask you for the system admin.
+
+26:12
+You have to select other.
+
+26:14
+There are two environment variables.
+
+26:19
+Go to the start menu, just type environment variable.
+
+26:24
+It will not ask you for the your admin.
+
+26:26
+Yeah, admin.
+
+26:27
+Oh, just locally.
+
+26:28
+This is locally.
+
+26:29
+Yeah, yeah.
+
+26:43
+This is what I'm doing.
+
+26:44
+OK, you can yeah, just add this one.
+
+26:51
+The just mention user profile.
+
+27:00
+I did this call see users.
+
+27:21
+You can copy from this here.
+
+27:22
+Also line #8 OK, so this is done.
+
+27:44
+Scroll down.
+
+27:49
+Yeah listen the last part, you have to connect your local to the terraform workspace.
+
+27:56
+Yeah, just close the current terminal and open it again and see the version.
+
+28:01
+Are you able to?
+
+28:16
+Still you have versions?
+
+28:17
+No no, you can see terraform version one point 6.0 correct?
+
+28:25
+I think you have to restart the Visual Studio.
+
+28:27
+I think I had the old old version still.
+
+29:21
+Open, open command prompt.
+
+29:30
+Yeah, yeah, here you can run telephone version.
+
+29:42
+OK, it's still pointing to this.
+
+29:45
+Go to the environment edit variables.
+
+29:48
+Yeah.
+
+29:48
+Is it pointing to the right folder?
+
+29:50
+I'm gonna check that Yeah, yes, you can just OK, user profile.
+
+29:57
+Have you given the full path though?
+
+29:58
+And then just give the automation.
+
+30:06
+Do I need to delete this one?
+
+30:08
+That's what I'm thinking, yeah.
+
+30:11
+Because this is the old one, right?
+
+30:12
+I have.
+
+30:15
+This was like before the update that Eric did.
+
+30:19
+Yeah.
+
+30:20
+And then I think maybe you need to remove the terraform.exe or it should be just been slash maybe.
+
+30:25
+Yes, Yes, yes.
+
+30:26
+It's not terraform.exe.
+
+30:28
+Yeah, remove that.
+
+30:31
+So you want to remove the slash also yes, Exit and redo it.
+
+30:40
+Restart.
+
+30:41
+Yeah, right now I think CMD should work.
+
+30:51
+To restart it, close and open yes.
+
+31:14
+Can you go open the folder and see if telephone file is there?
+
+31:19
+Yeah it is OK do one thing open the wiki page and there you have given the command user profile.
+
+31:34
+That one you can copy and paste in your edit variables and restart all the the Visual Studio command prompt and then try to run open the wiki page once Yeah you can see line #8.
+
+32:39
+Yes, mice, but it should work with my profile also, right?
+
+32:43
+I don't know.
+
+32:43
+OK, let me see.
+
+32:49
+You can try to run one.
+
+32:50
+CFO.
+
+32:51
+Yeah, Open a new ministry point.
+
+33:02
+OK, Maybe.
+
+33:03
+Yeah, to the east.
+
+33:43
+OK, OK, no, no it still it will not work.
+
+33:49
+You have to make a setup.
+
+33:53
+Make a connection between your local to your telephone workspace.
+
+33:58
+That is the last year and this one.
+
+33:59
+Link local telephone to telephone enterprise.
+
+34:06
+Go to open the wiki page.
+
+34:14
+Developer first Yes, open PowerShell and run this command Terraform login PowerShell.
+
+34:40
+You have to open PowerShell.
+
+34:59
+Yes, I can select 1090 days.
+
+35:13
+Yeah, copy this, go back to the PowerShell window.
+
+35:28
+You have to enter, it will not show, but you have to enter and then enter.
+
+35:34
+I think you have given twice.
+
+35:37
+No, just once.
+
+35:43
+It will do again right?
+
+35:45
+Yes.
+
+36:05
+So right click work in the PowerShell or control yes, yes, yes, right click.
+
+36:08
+You have to just once and then it will not show you just you have to enter once and then no.
+
+36:14
+This is the same.
+
+36:15
+I'm doing the same thing.
+
+36:19
+I have to OK copy paste into OK hey do one thing remove the older all the existing ones tokens and just do one more time.
+
+36:58
+Yeah, it's, it is copying.
+
+37:24
+Are you right click?
+
+37:29
+You are doing the right click.
+
+37:31
+Yeah, right click.
+
+37:33
+Check, check in Notepad for.
+
+37:36
+Yeah, yeah, it did.
+
+37:38
+It did.
+
+37:39
+I've seen that.
+
+38:37
+Just restart PowerShell.
+
+38:39
+Yeah, go restart.
+
+38:41
+I get a new PowerShell.
+
+39:57
+It what No, I'm just testing so so whether the right click is working, it is doing that, but like kind of but looks like that something is so I'm just copy pasting it before it's working Yeah, try try copy pasting it right instead of try, you know, doing a right click.
+
+40:28
+To a control.
+
+40:28
+I think Control V also works in PowerShell, isn't it?
+
+40:35
+Yeah, Control V should work this.
+
+40:38
+Yeah, try try Control V.
+
+41:04
+So this is opening my personal token, right?
+
+41:06
+So personal token or that it should be team token sort of, because when I did this one, I did a team token.
+
+41:17
+This is, I think your personal token only.
+
+41:20
+Yeah, because team token will work, right?
+
+41:25
+Not the personal token.
+
+41:26
+That's what I'm getting, because it is.
+
+42:19
+So turn off for Strong the token of Paris.
+
+42:58
+Yeah, I don't know, do one thing, try to log out from the current session in your in your workspace.
+
+43:10
+This is a token it's getting.
+
+43:12
+But like, yeah, if I do right click and then yeah, Amar, Amar, I just did the same step and what I did is extra is like I did 2 right clicks and I was successful like when I was doing in PowerShell.
+
+43:36
+So I'm not sure because it will take for me it's saying token is so it yeah yeah, because it's I just follow the step and got the token and its success.
+
+43:52
+OK, two right clicks.
+
+43:53
+Yeah, I did 2 right clicks.
+
+43:55
+Let me try Yeah, we logged out and logged in.
+
+44:17
+No, I didn't just give me a second.
+
+44:32
+So I'm thinking maybe this is cache to my old?
+
+45:15
+And this is the PowerShell ISE version or like the command from version.
+
+45:20
+Try the ISE version.
+
+45:21
+I did on ISE.
+
+46:15
+Oh, it's still running IPS.
+
+46:19
+Oh, it's still running there.
+
+46:20
+Oh, OK.
+
+47:03
+Not taking my inputs.
+
+47:07
+Do you wanna log out and log back in terraform?
+
+47:12
+I check something online like redoing your SAML process.
+
+47:17
+Yeah I did.
+
+47:17
+I did.
+
+47:18
+Yes, I did OK, but try once now in the right now.
+
+47:54
+Perfect.
+
+47:59
+OK, I did.
+
+48:40
+OK, so I know you can.
+
+48:43
+I can, yeah, Yeah.
+
+50:22
+Yeah, now you can run the telephone plan.
+
+50:24
+Oh, play.
+
+50:53
+You can open it here also you can see the all the logs.
+
+50:57
+But if you want to see the logs properly, you can open the workspace and go to the dev dev environment.
+
+51:07
+Yeah, click on that Yeah, see details.
+
+51:18
+No, no, no.
+
+51:18
+Above you can see there is one option C details click on Yeah, yeah, here we will get all the logs.
+
+51:39
+So we are first three changes are which we are doing removed, Yeah, yeah, removed other other just part of our OK, it's plus and minus.
+
+51:48
+You can see you're just adding the, removing and adding the LFTX.
+
+52:00
+So yeah, 71, eight to create, 22 change and 81 to destroy.
+
+52:05
+So yeah, 33X rates destroying and 78 changes.
+
+52:11
+OK, you can go to the Visual Studio and click yes, sorry, type yes, yeah.
+
+52:37
+So I'm just curious at this point, is it applying the changes in that?
+
+52:42
+Yes, because it's a for some, we have removed the work groups.
+
+52:48
+So we're starting from there.
+
+52:50
+So we are going with all the environments then test and then queue and then prod.
+
+52:56
+So what is it doing?
+
+52:57
+Can I reapplying those changes or like kind of doing those changes again or recreating them?
+
+53:05
+So we have at we have removed the workgroups from our code.
+
+53:09
+Yeah.
+
+53:09
+So you you can see in the screen in the logs, it's removing the workgroup and also some changes are there as a part of Terraform.
+
+53:18
+So it's just a plus and minus.
+
+53:20
+It's adding, removing and adding again as a part of.
+
+53:23
+OK, I was wondering like why we have like 78 some So what happens is the LF tags have some more attributes so we are not adding all the attributes.
+
+53:39
+So every time when you do this apply it will try to remove and then again add the same which you are doing in your code.
+
+53:47
+So it's just ignore means we can ignore it.
+
+53:52
+It's not because it's removing and then adding again.
+
+53:55
+OK it's just basically removing and re adding it and then yes.
+
+53:59
+Gotcha for roles and stuff it's not it's not removing and re adding the roles, but only if the changes are picked up.
+
+54:06
+It's just a point with changes for roles, right?
+
+54:07
+Yeah, there's these are the policies.
+
+54:10
+So only three major so you can see the 78 to add and 81 to destroy.
+
+54:17
+So there's a difference 3 so 3 we are removing and other 78 are just plus and minus.
+
+54:24
+Gotcha, removing and adding again policies and LF tags makes sense.
+
+54:28
+OK, perfect.
+
+54:29
+Yeah.
+
+54:33
+And sort of that actual plan is, you know for dev QA test and QA, it'll be just applied and for production, right.
+
+54:43
+And production that we are completely destroying and reapplying, right.
+
+54:48
+Yes, Sundra, OK, yeah, yeah, yeah, yeah.
+
+54:53
+Now you can open.
+
+54:55
+I think it's then you can now open the oh, test in your Visual Studio.
+
+55:05
+OK.
+
+55:06
+You want to test it?
+
+55:07
+Yeah, yeah, yeah.
+
+55:08
+OK.
+
+55:19
+Athena, I think.
+
+55:22
+Yeah, apparently someone, someone can verify in the background too, right.
+
+55:25
+So like Chandra or?
+
+55:27
+Yeah.
+
+55:27
+So can you try to query also once?
+
+55:32
+Yeah, I can do that.
+
+55:38
+Let me do that from here.
+
+56:43
+OK, yeah you can open test folder.
+
+57:12
+Yeah, we have to go first inside this folder in terminal.
+
+57:24
+Terminal you have to open first.
+
+57:27
+I'm just thinking from, can I go from here?
+
+57:41
+Yeah, yes, 3.3, yes, OK.
+
+1:04:26
+Don't over this one one SEC Amit here you have done the changes.
+
+1:04:33
+Can you just push to your to the repo you get add so far.
+
+1:04:40
+So far the voice is breaking.
+
+1:04:57
+Yeah, and I checked in test it is.
+
+1:05:01
+Hello.
+
+1:05:04
+Your voice is muffled.
+
+1:05:06
+You're on water.
+
+1:05:07
+Hello.
+
+1:05:10
+Hello.
+
+1:05:10
+Now it is breaking up Amar.
+
+1:05:45
+Can you do the same for the test?
+
+1:05:47
+Hello.
+
+1:05:52
+Hello.
+
+1:05:53
+Am I audible?
+
+1:05:55
+Oh, still having no no fault.
+
+1:06:05
+Yeah, I I checked in test the the the work groups are deleted and I can run the query.
+
+1:06:12
+So I think we're good.
+
+1:06:15
+OK.
+
+1:06:26
+Hello, am I good?
+
+1:06:30
+Little better, but still more.
+
+1:06:32
+Can you speak?
+
+1:06:34
+Hello.
+
+1:06:35
+Yeah better.
+
+1:06:36
+Oh OK, OK this one.
+
+1:06:52
+Can you go to this test ones and just post the changes?
+
+1:06:56
+Yeah, I did test, but it's still no test is still there.
+
+1:07:00
+No, you can see the you pushed for.
+
+1:07:11
+I think you are this dev.
+
+1:07:14
+Yeah.
+
+1:07:15
+OK, so dev, I pushed it test.
+
+1:07:17
+Yeah, I'm gonna do that now.
+
+1:07:20
+Yeah, that is I I checked the dev.
+
+1:07:22
+Dev is pushed already.
+
+1:07:24
+Yeah.
+
+1:07:33
+So test I think it's not pushed.
+
+1:07:36
+Yes.
+
+1:08:18
+So test is pushed.
+
+1:08:20
+Yeah, I know you can switch to EQA.
+
+1:08:49
+In the change, yes.
+
+1:09:42
+Hey, I wanna make sure that we are checking the consumption account as well.
+
+1:09:47
+I know, I don't know if we're checking the regular account, but we should check in the consumption account accessing through Tina, you only change for the producer, not oh, we are only applying for the producer.
+
+1:10:04
+Yeah, producers.
+
+1:10:13
+Yeah, that is correct.
+
+1:10:20
+But isn't it the script shows that also has the reporting account share too, right.
+
+1:10:26
+For reporting account, we have separate repository.
+
+1:10:31
+Yeah, they we haven't changed.
+
+1:10:33
+We only changed for the produce.
+
+1:10:35
+Yeah, yeah, reporting.
+
+1:10:42
+OK.
+
+1:10:44
+Yeah.
+
+1:10:45
+I'll get to know in a little bit after we start using things seeing it for the first time, Right.
+
+1:10:53
+So, so the account shared has basically all the modules listed out there, but now we are just using, you know, for test producer, it just goes and hits that Yeah, account share contains producer governance and report and all, all of the right.
+
+1:11:14
+OK, Yeah, Yeah, gotcha, gotcha.
+
+1:11:19
+And even all the then then I will resume like all the I see.
+
+1:11:25
+OK, I get it.
+
+1:11:34
+Yeah, in the meanwhile, I can do that.
+
+1:12:38
+Are you in QA, Amir?
+
+1:12:40
+No, I QA is still learning.
+
+1:12:42
+So I'm in the dev test.
+
+1:12:44
+Dev Yeah.
+
+1:12:49
+Dev of consumer.
+
+1:12:53
+Consumer, we haven't deployed anything to consumer.
+
+1:13:02
+Are we planning to deploy to consumer as well?
+
+1:13:10
+Change has to change has to work from the consumer also, right, right.
+
+1:13:22
+So that, that this one, no, but my question was anyway.
+
+1:13:27
+So I'm not gonna distribute you guys too much with my questions.
+
+1:13:31
+But now we, we are, we plan, are we not planning to deploy anything from our consumer or like reporting repository?
+
+1:13:41
+We would so, so in the production when we destroy it would just destroy everything because this is all linked from the this repository, right?
+
+1:13:52
+You see here.
+
+1:13:53
+But we, we made changes only for this version, not the other way comes.
+
+1:13:58
+That's why you're not deploying anything in dev test and QA for the for the other things.
+
+1:14:04
+But in production you're gonna deploy everything.
+
+1:14:08
+Once we destroy it's gonna destroy everything from all that ones.
+
+1:14:12
+And that is where I think, OK, and it makes sense.
+
+1:14:14
+So basically, yeah, move those blanket roles.
+
+1:14:18
+So you have to make sure all the things are deployed across the accounts and producer with the new version we are deploying it once it is done, then for production we will use a producer governance and reporting a poster is to deploy the code, right?
+
+1:14:35
+Yeah, OK.
+
+1:14:37
+Makes sense.
+
+1:14:45
+Are you in Q running QA?
+
+1:14:47
+Yeah, gotcha.
+
+1:17:04
+Yeah, I can see the roles are gone on the QA.
+
+1:17:10
+Yeah.
+
+1:17:33
+Yeah, I will.
+
+1:17:36
+I can query it too so we we can move to production.
+
+1:18:33
+So sort of like how we wanna do this Terraform auto approve or just the destroy?
+
+1:18:37
+No, no, no destroy.
+
+1:18:40
+Do you want to destroy all the modules?
+
+1:18:43
+Yes, there's three bucket also landing.
+
+1:18:47
+No, no, not the landing bucket.
+
+1:18:49
+The the only environment environment.
+
+1:18:52
+OK, so we'll do one thing.
+
+1:18:56
+You have updated the shared part.
+
+1:19:00
+Yeah, yeah.
+
+1:19:01
+OK.
+
+1:19:02
+Go to the main dot TF.
+
+1:19:04
+Just a minute, Just a minute.
+
+1:19:05
+Sorry, that is QA.
+
+1:19:06
+Yeah, it's QAI.
+
+1:19:08
+Just close this.
+
+1:19:12
+Yeah, Yeah.
+
+1:19:15
+First update this version.
+
+1:19:19
+Yes.
+
+1:19:20
+OK, go open the main dot TF.
+
+1:19:25
+OK, So here we have and our.
+
+1:19:28
+Yeah.
+
+1:19:29
+So first in the and come in the line #9 OK, so yeah, So what first we'll apply this change.
+
+1:19:38
+OK OK, so currently this Terraform 4 destroyed disabled.
+
+1:19:43
+So first we'll enable it and then we'll come in only this module and then the terraform apply again.
+
+1:19:52
+So first let's do the producer account shared.
+
+1:19:56
+No, no, you can just now you have uncommented this warning S3 bucket.
+
+1:20:01
+So now you can just apply it, OK, terraform in it and then apply.
+
+1:20:07
+So it will enable that S3 bucket.
+
+1:20:11
+No, this will destroy that S3 bucket also, right?
+
+1:20:13
+No, this is this is this is landing part is not part of or landing bucket is not part of this environment.
+
+1:20:21
+We we've isolated that from the environment core.
+
+1:20:25
+Only this DQ result and it takes that buckets, it will delete.
+
+1:20:30
+Landing is part of a different different, yeah, producer account shared.
+
+1:20:35
+Yeah.
+
+1:20:37
+OK.
+
+1:20:42
+So in the checklist there is one task which is mentioned as validate the catalog through different user roles.
+
+1:20:51
+Is that something that we do before deployment?
+
+1:20:56
+I don't know who put that task.
+
+1:20:57
+No, no, this after deployment, after right.
+
+1:21:01
+Makes sense.
+
+1:21:01
+No, yeah.
+
+1:21:02
+Meaning I don't know why that is there in the 1st place.
+
+1:21:05
+So that do you have that Excel sheet open?
+
+1:21:08
+Can you do you want to just Yeah, yeah, yeah.
+
+1:21:11
+So this, this row right is row #8 Sourabh, do you know who put this row here?
+
+1:21:17
+Go to the left, go to the left, go to the left.
+
+1:21:19
+No, no, that, that I put the comment, but no, why is this here?
+
+1:21:25
+That is not us, right?
+
+1:21:28
+No, I didn't add it to this line.
+
+1:21:30
+OK, OK, fine.
+
+1:21:32
+So then we should ignore that.
+
+1:21:33
+Yeah, I'll stop the the the step starts from step #9 right?
+
+1:21:37
+OK, fine.
+
+1:21:37
+I'll I'll then delete that and I don't think we need that.
+
+1:21:40
+I'll move that comment on.
+
+1:21:41
+OK.
+
+1:23:06
+Yeah, now you can run the telephone play once.
+
+1:23:08
+Yeah.
+
+1:23:12
+Oh yes.
+
+1:24:42
+Yeah, I'm just looking in the logs, I can bring that maybe.
+
+1:25:16
+After this summer you have to just come in this whole module and then the terraform play again.
+
+1:25:21
+So it will just remove this module from the our plan.
+
+1:26:16
+Hey Sarah, one question, I see that in production there are more components like 93 to 90s while in lower environment it was less.
+
+1:26:26
+So is there any like different case production?
+
+1:26:29
+Because we are enabling has three bucket.
+
+1:26:33
+You can see here in the line #9 we have we haven't commented that part because we are going to destroy this environment.
+
+1:26:41
+So first.
+
+1:26:42
+So what happened in S3?
+
+1:26:43
+We have one component like force destroy.
+
+1:26:45
+If we enable it, then if it's disabled then no one can destroy the bucket.
+
+1:26:52
+OK.
+
+1:26:53
+If it's true, if it's enabled, then we can also destroy.
+
+1:26:58
+So that's why we we need to destroy the bucket.
+
+1:27:01
+So we have enabled it.
+
+1:27:03
+Now we are going.
+
+1:27:05
+So that's why it's we have more components in prod as compared to lower environments.
+
+1:27:09
+OK, look in lower amount we we didn't enabled that part.
+
+1:27:14
+Yeah, OK, so you got it.
+
+1:27:19
+Yeah, yeah, man.
+
+1:27:22
+Yeah, yeah.
+
+1:27:25
+I'm gonna just now comment the whole module from line 1 to 15.
+
+1:27:29
+Yeah, yeah.
+
+1:27:43
+I am used to PyCharm, So what is the shortcut for this?
+
+1:27:47
+So sift slash oh, shift, sorry, sorry, sorry.
+
+1:27:52
+Control slash No, it's not working.
+
+1:27:54
+Control slash Oh, I think you have to install some plug insurance.
+
+1:27:58
+Yeah, yeah, yeah, this OK, It will take time now just go to the plug insurance once and download.
+
+1:28:15
+I think it will take one or two-minute.
+
+1:28:18
+The left hand side No, just heard from the bottom.
+
+1:28:27
+Yes extensions yes yeah type terraform yeah, Hershey Cop 1.
+
+1:28:37
+You can install first one and just type Jason once.
+
+1:28:53
+What is that?
+
+1:28:53
+Jason?
+
+1:28:54
+Jason.
+
+1:28:54
+Yeah, just type Jason in place of Terraform.
+
+1:29:08
+Yes, yeah, anyone can now.
+
+1:29:10
+Now go back to the file.
+
+1:29:16
+Yes.
+
+1:29:16
+Now select the.
+
+1:29:24
+So now we have commented this only this particular module because we want to destroy this one.
+
+1:29:30
+Well, instead of destroying whole all the all the modules, we are just need to destroy this one.
+
+1:29:35
+So we commented this and we'll done the terraform, this terraform in it upgrade.
+
+1:29:42
+Wait, wait, wait.
+
+1:29:43
+So we are we are we are destroying the producer governance and reporting, right?
+
+1:29:49
+No, no, no, no.
+
+1:29:50
+We are destroying only producer that is just the providers.
+
+1:29:52
+We are adding, adding this to this module.
+
+1:29:56
+That is the producer Governance and reporting are part of account shared mod file, correct?
+
+1:30:03
+This one.
+
+1:30:04
+No, no, this you can just click on the left hand side first file copy above 1 first.
+
+1:30:16
+Yeah.
+
+1:30:17
+So you can see account shared contains all the reporting producer.
+
+1:30:22
+Yeah, this is this file is contains 3 account, correct.
+
+1:30:27
+So it's a common files and this main dot DF contains the our all the resources, the ETL resources, correct.
+
+1:30:38
+So that's we are going to destroy.
+
+1:30:44
+So ideally we want to destroy everything, OK, even the consumer and because that is part of the mocker, so then we have to destroy then landing bucket will also go then because they have the the dependency on each, correct.
+
+1:31:04
+So better we'll just do the ETL part because that is a common does not impact anything.
+
+1:31:12
+OK.
+
+1:31:13
+Yeah.
+
+1:31:13
+So auto approve with auto approve or just no, just just run, run this telephone minute upgrade- upgrade, Yeah.
+
+1:32:16
+The telephone play.
+
+1:33:30
+Now, can you open the telephone workspace, Amar?
+
+1:33:34
+Yeah, I did.
+
+1:33:41
+You have to click on runs.
+
+1:33:43
+Yeah, Yeah, this one.
+
+1:33:56
+So yeah, 6 to create phone and T6 to destroy.
+
+1:33:59
+So you can see first six are the just producer account shared.
+
+1:34:03
+I left tag plus and minus that is fine.
+
+1:34:07
+And other are all 2 module module producer environment core 496.
+
+1:34:13
+So we are destroying 496 resources from the producer environment core then RTB.
+
+1:34:22
+Yeah, these are the icon shared, right?
+
+1:34:24
+The yeah, yeah, just really just changes.
+
+1:34:29
+So now you can click on Yes.
+
+1:35:37
+You know, how long does the display step take?
+
+1:35:40
+Yeah, another 2-3 minutes.
+
+1:37:49
+That's finished.
+
+1:37:51
+Yeah.
+
+1:37:51
+No, no, you can open click on the main, the main dot DF file.
+
+1:38:02
+Yeah, you can uncomment, uncomment this one.
+
+1:38:08
+Yes, yes.
+
+1:38:14
+Now you can under terraform it upgrade one more time.
+
+1:38:22
+Yeah, the buckets are gone, I can see that.
+
+1:38:32
+And then the telephone minute upgrade- Yeah.
+
+1:39:45
+I know you can run the play.
+
+1:40:32
+The databases which are which we created as part of governance and reporting that is also destroyed through this our last plate, terraform plate.
+
+1:41:21
+Yeah.
+
+1:41:21
+So the database are no longer there.
+
+1:41:23
+I checked yes.
+
+1:42:10
+OK.
+
+1:43:24
+Nice, nice.
+
+1:43:24
+Done.
+
+1:43:24
+No, Yeah, yeah, let's do the validation steps.
+
+1:43:43
+I checked the work groups are not there, so you're good there.
+
+1:43:48
+But Chandra, can you do the validation steps or let?
+
+1:43:55
+Yeah, yes.
+
+1:43:59
+There.
+
+1:44:01
+Let let, let, let.
+
+1:44:02
+Yeah, let us say let Amar only check it out.
+
+1:44:05
+Yeah, yeah.
+
+1:44:30
+I assume tables gets created during the glue job executions, is that right?
+
+1:44:35
+Database and tables?
+
+1:44:36
+Yes, yes, yes.
+
+1:44:37
+Really.
+
+1:44:38
+I I can see the database get got created already.
+
+1:44:42
+Glue runs will create the tables data will yeah, database is there only tables will will when we learn the job then it will create then we get tables of course.
+
+1:44:53
+Yeah.
+
+1:44:55
+OK, so validation is first.
+
+1:44:57
+With you can open the checklist.
+
+1:45:01
+Yeah, yeah, line #10 just you can follow.
+
+1:45:29
+This is buckets are created.
+
+1:45:30
+They validated that OK check their DQ bucket though I didn't check that #7 number 7/23/14 is like 4 minutes back.
+
+1:46:01
+And let's put this in a different screen.
+
+1:46:08
+OK, so buckets are created.
+
+1:46:09
+Let me go to the blue.
+
+1:46:54
+Hello, am I audible?
+
+1:46:56
+Yes, I thought like my Internet is gone.
+
+1:49:19
+Yeah.
+
+1:49:19
+Are you there?
+
+1:49:25
+It's VPN.
+
+1:49:27
+Oh, yeah.
+
+1:49:30
+OK.
+
+1:49:30
+Anyway, meaning.
+
+1:49:31
+So Steny, the the validations are something that can be done by the team.
+
+1:49:38
+So do you want, I mean, I looked at the event bridge.
+
+1:49:43
+What else is there?
+
+1:49:46
+If somebody else wants to pick that up, that can be done or Chandra can do it.
+
+1:49:49
+No, no, let's let's let's validate, right.
+
+1:49:54
+So the Amar OK, is is not the only one who can validate.
+
+1:49:57
+I think the the glue job looks good.
+
+1:50:01
+I kind of verified every single job that's out there.
+
+1:50:05
+So that's good.
+
+1:50:05
+We can move on to the next one step functions.
+
+1:50:10
+Step functions.
+
+1:50:10
+Yeah, so functions also.
+
+1:50:16
+I checked it is there.
+
+1:50:25
+Hello bridge.
+
+1:50:28
+Yeah, function is good.
+
+1:50:29
+Yep.
+
+1:50:29
+So function is good.
+
+1:50:31
+Yeah, event is good.
+
+1:50:37
+I need to check Eventbridge.
+
+1:50:39
+I checked for everything Compaction job.
+
+1:50:40
+I need to check one minute after that.
+
+1:50:51
+Yeah, my VPN is disconnected for us.
+
+1:50:54
+I have to reach out.
+
+1:50:56
+OK, no problem.
+
+1:50:58
+I think we can carry on with after the step functions, basically when bridge and people can share, right?
+
+1:51:07
+So, Amar, you check your winbridge SNS, maybe Chandra can check SNS, somebody else can pick up Lambda.
+
+1:51:13
+That's good.
+
+1:51:14
+Yeah, SNS is a check.
+
+1:51:15
+Even with a check, SNS is good.
+
+1:51:18
+OK Lambda is good even.
+
+1:51:25
+Did you go so good step function flows, we need to have 4 lambda's good.
+
+1:51:34
+Yeah, basis I think I didn't verify everything that I think I saw at least transmission 1.
+
+1:52:06
+I I'm checking a Dynamo DB table.
+
+1:52:08
+Yeah, table Dynamo is yeah, the tables are creative.
+
+1:52:13
+Yes, yeah I'm checking the params got inserted properly like I'm checking the some sample params.
+
+1:52:39
+Yeah, param, sorry, inserted, right, that is, that is yes, yes, yes, there are three param, that two param has been inserted properly and five tables has been created.
+
+1:52:59
+Yeah, OK.
+
+1:53:11
+Yeah.
+
+1:53:11
+I didn't see the analytics yearly snapshot being created.
+
+1:53:15
+Is that expected or is that the the yearly snapshot job you're seeing?
+
+1:53:21
+We'll have to no database.
+
+1:53:25
+No, it it, no, it is not a different date.
+
+1:53:27
+Yeah, go ahead, Chandra, go ahead, go ahead.
+
+1:53:30
+Yeah, go ahead.
+
+1:53:32
+So it is, it is not a different database.
+
+1:53:33
+It's within the same transmission and distribution database.
+
+1:53:37
+It the the tables will be created when the job is run and the job we have not scheduled it.
+
+1:53:42
+We'll have to call it separately, individually.
+
+1:53:46
+So the analytics ELE snapshot is just basically not a database.
+
+1:53:53
+Not a database, it's just 20 basically only OK, Good, good, good, good.
+
+1:53:58
+I'm good.
+
+1:53:58
+That's verifying that.
+
+1:54:07
+OK, yeah.
+
+1:54:13
+What's next?
+
+1:54:15
+Looks like verification is complete.
+
+1:54:24
+So here we should have two, and in the governance we should have three with the resource links, and in the reporting we should have two.
+
+1:54:34
+What do you want to link the resource links I'm talking about?
+
+1:54:41
+Oh yeah, yeah, yeah.
+
+1:54:53
+Everything good?
+
+1:54:55
+Yeah, just a minute, I think so Rob, do you wanna, I think that is the first step, right.
+
+1:55:11
+Are we planning to execute the trigger the jobs to the landing zone?
+
+1:55:24
+Yeah, I can.
+
+1:55:26
+I mean they are already scheduled at at midnight, equipment is already running OK, but the others are others are planning to schedule at midnight.
+
+1:55:43
+Gotcha.
+
+1:55:43
+So in terms of next steps, it looks like if, if one more confirms that one last thing, I think we're good to go.
+
+1:55:52
+And you know, according to this type, yeah.
+
+1:55:56
+Who takes care of the job executions.
+
+1:56:00
+So Redshift is a manual.
+
+1:56:03
+Yeah, everything.
+
+1:56:05
+No, the the last thing is the Redshift thing is a manual thing.
+
+1:56:10
+It's not embedded in the terraform.
+
+1:56:13
+So once we verify the workgroup, I think we should be good.
+
+1:56:18
+Wait, which one?
+
+1:56:20
+What word?
+
+1:56:21
+The the Redshift word group in the consumer account is a manual one.
+
+1:56:30
+Yeah, yeah, that's a manual 1.
+
+1:56:38
+I think I need to just log in from there.
+
+1:56:40
+That needs to be created.
+
+1:56:42
+Yeah, yeah, yeah.
+
+1:56:42
+In the memory.
+
+1:56:53
+OK.
+
+1:56:53
+So in terms of the next steps, you know, once the jobs are complete, the ETL pipeline gets kicked, kicked in, kicked in, right?
+
+1:57:05
+So is somebody triggering that off or is it gonna go off at a certain time?
+
+1:57:10
+It'll go off.
+
+1:57:11
+It'll go off at 3:00 AM.
+
+1:57:14
+It will go off at 3:00 AM.
+
+1:57:16
+The thing that equipment will be complete by then, sort of, Yeah, it should be, yes.
+
+1:57:23
+OK, good.
+
+1:57:24
+So 3:00 that runs through, you should have all the tables listed and someone now sure can check the tables.
+
+1:57:32
+We can verify in the morning, verify it from the consumer account and we're good to go, correct, Yes.
+
+1:57:42
+And then we can deploy his Power BI forward in the AM once the tables are verified.
+
+1:57:57
+So is that it?
+
+1:57:57
+Are we good for the night?
+
+1:58:00
+Yep.
+
+1:58:00
+That looks like.
+
+1:58:00
+Yeah, almost.
+
+1:58:02
+Are you good?
+
+1:58:04
+Yeah.
+
+1:58:04
+Just a just a minute.
+
+1:58:05
+Sorry.
+
+1:58:08
+Good job, guys.
+
+1:58:09
+I see you doing the one thing with Redshift, but I'm gonna log it's way past my bedtime.
+
+1:58:14
+I will see you all in the morning.
+
+1:58:16
+No, no, No more bug triage.
+
+1:58:19
+Yeah, that's our OK.
+
+1:58:20
+All right.
+
+1:58:24
+Bye, guys.
+
+1:58:25
+OK.
+
+1:58:25
+Yeah, bye.
+
+1:58:26
+Yeah, I think we we are good.
+
+1:58:27
+Yes, there's a KMS attached to here.
+
+1:58:30
+So I was just thinking about this KMS.
+
+1:58:32
+Hey, so the files are already available for today.
+
+1:58:38
+Do we want to kick up the job now or just wait till the schedule 3:00 AM?
+
+1:58:43
+Oh, you mean all the files are available?
+
+1:58:46
+I mean, we we ran the schedule today, so let's today, right.
+
+1:58:54
+I'm sorry.
+
+1:58:55
+I mean day 7, not for 8, correct?
+
+1:58:58
+Yeah, for day seven.
+
+1:58:59
+Yes.
+
+1:59:00
+Yeah, yeah.
+
+1:59:01
+Hey, what, what what about the equipment?
+
+1:59:03
+Sort of.
+
+1:59:03
+So is will it have like a different old date as 11/7 or 11/8?
+
+1:59:11
+I could print file.
+
+1:59:12
+Let me check.
+
+1:59:14
+There is a day 7 file available.
+
+1:59:16
+Yes.
+
+1:59:17
+But the new job is gonna throw in 11/8.
+
+1:59:20
+Yes.
+
+1:59:21
+OK, that that yeah, that will throw in 11/8.
+
+1:59:23
+Yes.
+
+1:59:23
+And that will not Yeah, I assume that will not contradict with anything else.
+
+1:59:27
+So every you know, the pipeline looks for 11/8 files and it's just gonna run off, correct.
+
+1:59:35
+Correct.
+
+1:59:36
+OK, Good to go.
+
+1:59:38
+Good job, guys.
+
+1:59:38
+Thank you.
+
+1:59:39
+Lots of new things, you know, new things that we haven't seen prior or we haven't learned prior.
+
+1:59:44
+So good.
+
+1:59:46
+We'll connect in the morning.
+
+1:59:47
+Thank you.
+
+1:59:47
+Appreciate all the hard work.
+
+1:59:49
+That's all.
+
+1:59:49
+Is there anything else?
+
+1:59:52
+Nope.
+
+1:59:53
+Yeah.
+
+1:59:53
+Good.
+
+1:59:54
+Good.
+
+1:59:54
+Thank you.
+
+1:59:54
+Thanks, everybody.
+
+1:59:56
+Thank you.
+
+1:59:56
+So in the morning.
+
+1:59:57
+Thanks.
+
+1:59:57
+Have a good night.
+
+1:59:58
+Bye.
+
+1:59:58
+Yeah, Thank you.
+
+1:59:59
+Have a good day.
+
+2:00:00
+Bye.
+
+2:00:00
+Bye.
