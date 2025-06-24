@@ -1,132 +1,1456 @@
+KT  AWS Glue Delta Processing Framework-20250623_193447-Meeting Recording
 
-################################################################################
-# Predev Deployment Pipeline
-################################################################################
+0:02
+This is a session for a delta mechanism that we have recently developed.
 
+0:06
+OK.
 
-trigger:
-  branches:
-    include:
-      - feature/*
+0:07
+And still the testing is going on.
 
-variables:
-  - group: Terraform-Enterprise-Credentials 
-  - name: tf_version
-    value: '1.9.5'  
-  - name: tf_directory
-    value: './terraform'
-  - name: TFE_WORKSPACE_NAME              
-    value: ''     # <--- Set to your respective workspace.
-  - name: target_deploy                   
-    value: 'false'                        # <--- Set to true when targeted deploy is needed.
-  - name: deploy_path           
-    value: ''                             # <--- REQUIRED if target_deploy is set to true. Example: 'module.producer-env_core.module.c4c' IF not being used, KEEP EMPTY.
+0:09
+So I don't have any special or document for this process.
 
+0:14
+OK, So I'll just share the the the details of the from the code itself like what what we have done the development and how it will work and all the concept of that.
 
-pool:
-  name: 'dataengineering_tf' 
+0:26
+OK, so you have already completed the full load concept of the ETL data like right, right.
 
+0:34
+So where we are loading the data from BDOS system to our landing zone and from where that landing zone to our raw data raw table it is being loaded and the data will load into raw S3 bucket and then from where it will load to the process layer and then process to analytical layer.
 
-steps:
-- checkout: self
+0:55
+So those concept it is clear to you guys right yes, right yes.
 
- 
-# Debugging if needed
-# - script: |
-#     git config --list --show-origin | grep extraheader
-#   displayName: "Debug: Show any leftover Git extraheaders"
+1:01
+So let me share my screen.
 
-# Step 0: Authorize Git 
-- script: |
-    git config --global http.https://psedevops.puget.com.extraheader "AUTHORIZATION: bearer $(System.AccessToken)"
-  displayName: 'Authorize Git'  
-  env:
-    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+1:02
+So we have created one separate module in Terraform and where we developed our new framework job.
 
+1:12
+OK.
 
-# Step 1: Check workspace
-- script: |
-    echo "Checking if workspace is allowed: $(TFE_WORKSPACE_NAME)"
-    if [[ "$(TFE_WORKSPACE_NAME)" == *individual* || "${TFE_WORKSPACE_NAME}" == *predev* ]]; then
-      echo "Valid workspace: proceeding."
-    else
-      echo "Invalid workspace: $(TFE_WORKSPACE_NAME). Aborting pipeline."
-      exit 1
-    fi
-  displayName: 'Validate TFE Workspace Access'
+1:19
+So this is SAP customer module.
 
+1:21
+OK, in this in this module you can see framework job that's all the validation check delta similar to that we have a full load so that only and then we have a raw to process, sorry, landing to raw and then raw to process.
 
-# Step 2: Install Terraform manually
-- script: |
-    wget https://releases.hashicorp.com/terraform/$(tf_version)/terraform_$(tf_version)_linux_amd64.zip
-    unzip terraform_*.zip
-    sudo mv terraform /usr/local/bin/
-    terraform version
-  displayName: 'Install Terraform'
- 
+1:39
+And then also we have analytic created when analytic direct analytic job we have created because we want to create analytic table also.
 
-# Step 3: Generate terraform.tf dynamically 
-- script: | 
-    echo 'terraform {
-      cloud {
-        hostname     = "tf.puget.com"
-        organization = "DataEngineering"
-        workspaces {
-          name = "$(TFE_WORKSPACE_NAME)"
-        }
-      }
-      required_providers {
-        aws = {
-          source  = "hashicorp/aws"
-          version = "~> 5.82.0"
-        }
-      }
-      required_version = "1.9.5"
-    }' > terraform.tf
-    echo "Generated terraform.tf with workspace: $(TFE_WORKSPACE_NAME)"
-  displayName: 'Generate terraform.tf'
+1:50
+OK, so now The thing is the the main differentiation between the full load and this delta load is like in a full load we just go to that particular S3 bucket in a validation.
 
+2:03
+I'm just talking about the one to one job.
 
-# Step 4: Initialize with TFE backend
-- script: |
-    echo "=== Terraform Init ==="
-    terraform init -input=false 
-  displayName: 'Terraform Init'
-  env:
-    TF_TOKEN_tf_puget_com: $(TF_TEAM_TOKEN)
-    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+2:05
+OK, first validation check delta I'm discussing here.
 
+2:09
+So where what we used to do, we used to go to that landing bucket and then we used to see whether that file is exist or not there.
 
-# Step 5: Terraform Apply (targeted OR full apply)
-- ${{ if and(eq(variables['target_deploy'], 'true'), ne(variables['deploy_path'], '')) }}:
-  - script: |
-      echo "Running targeted Terraform Apply for: $(deploy_path)"
-      terraform apply -input=false -auto-approve -target=$(deploy_path)
-    displayName: 'Terraform Apply (Targeted)'
-    condition: and(succeeded(), or(contains(variables['TFE_WORKSPACE_NAME'], 'individual'), contains(variables['TFE_WORKSPACE_NAME'], 'predev')))
-    env:
-      TF_TOKEN_tf_puget_com: $(TF_TEAM_TOKEN)
-      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+2:18
+OK, so the file details was given from Dynamo DB like each table and each fields will have separate Dynamo DB for the parameters correct?
 
-- ${{ if ne(variables['target_deploy'], 'true') }}:
-  - script: |
-      echo "Running full Terraform Plan and Apply for individual workspace"
-      export TF_LOG=DEBUG
-      terraform apply -target='module.ProducerEnvCore' -input=false -auto-approve
-    displayName: 'Terraform Plan and Apply (Full - Individual or Predev env only)'
-    condition: and(succeeded(), or(contains(variables['TFE_WORKSPACE_NAME'], 'individual'), contains(variables['TFE_WORKSPACE_NAME'], 'predev')))
-    env:
-      TF_TOKEN_tf_puget_com: $(TF_TEAM_TOKEN) 
-      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+2:33
+So I'm just opening for the D1.
 
+2:36
+So here we have a source file that means this is already defined that in which bucket, what will be the subfolder names and what will be the you know the year, month and date.
 
-# Step 6: Clean up
-- script: |
-    git config --global --unset-all http."https://psedevops.puget.com".extraheader
-  displayName: "Clean all Git extraheaders"
-  condition: always()
+2:49
+So everything was decided OK this things.
 
+2:53
+But in our delta what we are doing we are just going there in the source file and checking how many files are there in a full load.
 
+3:02
+There was a limitation to load only single file but in our delta we have a mechanism like whatever number of file will be there in that particular folder it will load all OK first difference.
+
+3:17
+So here we are getting the list data list from the Dynamo DB like with the scope, whatever the scope will match OK and all the list will come like how many tables we are going to execute for that particular step functions it will come.
+
+3:34
+And here also we are maintaining our last process timestamp OK and this timestamp will come from where?
+
+3:42
+So it will come from the file itself.
+
+3:45
+So suppose we have a summer delta file.
+
+3:52
+So in this date is there there's no time stamp because it's a full OK.
+
+3:57
+But we have a sum data.
+
+4:00
+I'm just checking whether we have or not in this 3 dev test.
+
+4:08
+OK, so service request I'm just checking whether we have or not OK, I think we have.
+
+4:15
+I'm just opening anyone.
+
+4:18
+So here you can see the date and also you can see the time stamp here.
+
+4:24
+So from here we are just extracting if there is no time stamp there is no problem at all in our data load.
+
+4:32
+But we are maintaining a time stamp also because initially we thought like suppose we have a multiple files OK in a same folder in between that time for that particular day some other delta will come.
+
+4:47
+So how we'll identify which file need to be loaded.
+
+4:51
+So with that we were capturing that time stamp from the file itself and we are maintaining that time stamp in our Dynamo DB table as a parameters and then you know next time whenever we are running.
+
+5:04
+So we are comparing that if that time stamps data is already loaded or not before that time stamp of datas if that is already loaded.
+
+5:13
+So we have to ignore that because if you are running in the same day but I don't think so we have any that kind of job available apart from the weather in a weather hourly it will execute but apart from the weather we don't have anythings that will execute multiple time in a day.
+
+5:31
+OK, even though we are maintaining this one then it will come here that file and question here sorry to.
+
+5:41
+So basically suppose you we have the multiple files with different process timestamp, right.
+
+5:48
+So be different different process timestamp for different files Yeah in the same location.
+
+5:54
+So when we are executing all the files, suppose the timestamp, the last process timestamp is greater than the whatever we have processed on the last day.
+
+6:05
+So we will pick all the files obviously right?
+
+6:10
+And what would be the time stamp that would be stored in the Dynamo DB?
+
+6:14
+The latest latest one, the greatest 1 greatest 1 greatest.
+
+6:18
+OK, so here you can see that time stamp we are passing and it will check whether the file is exist or not that particular location.
+
+6:27
+OK, so this this this function is newly created that you can see in a common function not in this common function.
+
+6:35
+There's a only single common functions that will be in ASAP module.
+
+6:39
+OK, so initially we we were maintaining here, but now that is merged at code into SAP module whatever we have a common functions.
+
+6:46
+OK, OK, so that you can see that you know new functions there.
+
+6:51
+So here it will come and it will, you know extract the timestamp from the file itself and then that will also check.
+
+6:58
+So in a in a in in this job validation check job, we are not taking any date.
+
+7:06
+OK, the same jobs, the same things will you know in a when we are going to land into raw.
+
+7:13
+So here when we are passing, I'm calling that you know to check whether the file is there or not.
+
+7:21
+So here we are returning timestamp, the latest process timestamp that you are asking, right?
+
+7:29
+Right.
+
+7:29
+Yeah.
+
+7:31
+So here we no need to maintain the timestamp.
+
+7:33
+That's why we are not returning.
+
+7:35
+OK, So what, what, what, what will happen if we have if we don't have the timestamp in the file, nothing will happen.
+
+7:43
+Nothing will happen.
+
+7:44
+OK, so it will process all file.
+
+7:47
+It will process all files.
+
+7:49
+So that being said that it will it will consider as a full load kind of a thing.
+
+7:54
+Yes, not only full load.
+
+7:56
+In a full load, we are loading only single file and that file name is coming from the source file name from source file, from name from the Dynamo DB frame.
+
+8:11
+What do you call it?
+
+8:12
+Parameters.
+
+8:13
+OK, so in that you know there is A1 methods called.
+
+8:19
+I mean there's one method we have in the common functions where we are just appending that day, month and year in this, right, replacing this day, month and year to load the single file.
+
+8:29
+But in the delta we are not doing that.
+
+8:32
+Whatever files will be there, it will load all if there is no time stamp.
+
+8:36
+OK, OK, so basically the delta mechanism is has been implemented based on the considering that we would have the time stamp date and time stamp in in the file itself, right File itself, yes.
+
+8:52
+And also see we while developing this mechanism, we have also considered that later on maybe whatever extractor we are using that BODS that will not be a you know, of use and some other extractor will come.
+
+9:09
+I'm not sure what is the name of that extractor.
+
+9:11
+So there the file name and, you know, maintaining the time, date and all whatever it's maintaining the Dynamo DB frameworks here like, you know, location everything.
+
+9:22
+The file name that will not be the the, you know, facility to maintain.
+
+9:27
+So that also we have taken as a consider here.
+
+9:30
+So we no need to you know, bother about what what file name is given in the in the as a parameter.
+
+9:37
+So it will go to that particular location and whatever file will be there, it will load all OK.
+
+9:45
+So initially this is we developed for the delta, but now there's one process call LMSR.
+
+9:52
+Currently testing is going on for that.
+
+9:55
+That is a part of the SAP that is a full load.
+
+9:58
+But we are executing from the delta mechanism because there is a split file, because there's in a system, there's a huge file and that is not going to come in a single sort single file.
+
+10:10
+So that is coming in a split, OK.
+
+10:12
+So because of that we are loading in or using a delta framework because there will be multiple files in a for the single day.
+
+10:20
+OK, So here it will go to that location, check whether the file is there or not and based on that, that condition will pass OK, validation check.
+
+10:33
+OK, nothing much.
+
+10:36
+Now come to the landing to raw.
+
+10:39
+Now again we have we went to the location, we checked the file, taking the time stamp and the list of file.
+
+10:46
+How many files are there?
+
+10:48
+We have to load each file all all list of files we are getting and then we are looping into it and then we are loading one by one.
+
+10:56
+OK.
+
+10:57
+Now the second differentiation from the full load to this load is in a in a full load we were doing overwrite with partition with same day, right, right.
+
+11:08
+Right.
+
+11:08
+Now here we are creating the partition, but we are appending, we are not doing overload, overwrite, sorry.
+
+11:18
+OK, So suppose if he if he are running the same file twice in a day, that means there will be duplicate in raw, OK.
+
+11:27
+But in a full load there will be the same partition but data will not duplicate, OK in a full load.
+
+11:35
+So that's a difference here.
+
+11:37
+Nothing much, only this online code here is a change and loop for load multiple file.
+
+11:45
+OK, OK, Yeah.
+
+11:48
+Now any question in this file in this zone?
+
+11:53
+No.
+
+11:54
+So basically here we are just appending the appending the partition for that particular day, correct.
+
+12:01
+So data will be duplicate, there is duplicate data, right.
+
+12:06
+Data would be duplicated because for that particular key there might be a multiple, for a particular primary key, there might be multiple updates happen in the source system and the same data would come in the as a incremental data, right.
+
+12:21
+And that would be sitting in the same partition for that particular day.
+
+12:25
+Yeah.
+
+12:26
+Now coming to the raw to process.
+
+12:30
+So previously you know we have done this delta mechanism 33 type of OK like this a third version of the delta, previously there was no duplicate in process layer but it was duplicate in raw layer OK.
+
+12:49
+But now everything is changed based on the client requirement.
+
+12:52
+Client said no, we need a data history, historical data in process layer itself.
+
+12:58
+So whatever the duplicate update, delete whatever will happen in analytical layers.
+
+13:02
+So all the things will be available in process layer.
+
+13:06
+So we are not doing anything any changes here.
+
+13:09
+It will just whatever load will be there in a row, the same will be there in the process.
+
+13:14
+So data is coming here, it is reading from the sorry from the raw layer and then it is coming here and writing as a append same.
+
+13:29
+There is no change that this, this, this line is only change here from full load to this.
+
+13:34
+OK, there was a override partition.
+
+13:37
+There is a append here.
+
+13:39
+So basically we are again we are appending it out for this process layer as well.
+
+13:45
+Yes.
+
+13:46
+So same similar data, yeah.
+
+13:49
+Are we going to get the delta data from when we are extracting from the raw table, are we getting the delta information or the see like suppose today is a full load OK not today.
+
+14:07
+Yesterday it said if yesterday whatever the data was loaded and the system loaded with the status date, today we are loading just chunk of data like a delta data.
+
+14:16
+So it will the partition will be for today's date only right?
+
+14:19
+Right.
+
+14:19
+Whatever day maintain we are maintaining and it will append in a in a previous day data OK.
+
+14:25
+But only the difference will be like what is the date here?
+
+14:29
+OK, now when we'll go to the analytical layer then you'll understand how it is maintaining no Abhiwal.
+
+14:36
+My question is so suppose in raw layer in yesterday's partition, suppose today's partition may have maybe there are multiple times append happen in the raw layer, right for for the same day.
+
+14:51
+Now when it is coming to the process layer, how the how it is identifying OK which which set of records would be processed in the process layer.
+
+15:01
+So we are reading from day, month and year, right?
+
+15:06
+See here we are reading with the partition day, month and year, right?
+
+15:11
+OK.
+
+15:11
+So suppose today we run multiple times.
+
+15:14
+So multiple data, multiple data will be there with the same partition name which we are reading here.
+
+15:22
+So whatever the multiple data will be there with this date, all the data will come here in this data frame.
+
+15:29
+And that same data frame we are writing as a append in a previous day data with partition today's date.
+
+15:41
+So same it will be same data, same, whatever data will be there in a raw, same data will be there in a process because this run will execute same day, right?
+
+15:49
+OK, got it.
+
+15:50
+OK, sorry, one question.
+
+15:54
+Yeah, one question, sorry.
+
+15:56
+So when we say like in a scenario where you have multiple files, right, which are available in your source system, which is in landing zone on a particular day, I'm talking about the same day you have multiple files.
+
+16:10
+And do you suppose you have 10 files, you have 100 hundred records across you, each of those 10 files and the schedule, I don't know how the schedule runs.
+
+16:18
+Is it event based or is it is it schedule based?
+
+16:24
+If it is schedule based, suppose you run it every three hours and you pick up 3 files and then the next three hours you pick up 3 files etcetera, right?
+
+16:33
+So what really happens in this scenario where you have 1000 records, 1000 records across each of those files and you pick up 303 hundred records each time, right?
+
+16:44
+So how this data goes from from landing to raw, raw to process I, I understand it's append, but what, how, how eventually it kind of combines together that combines 300 records together and then it takes the next set.
+
+17:01
+How, how does it go?
+
+17:02
+I'm just trying to understand that aspect.
+
+17:05
+Sorry I joined a little late if you already answered.
+
+17:07
+But so here we are maintaining process last process timestamp OK.
+
+17:17
+So if we are running like we don't have any any and as of now we don't have any job or any module where we are running multiple times in a day OK data.
+
+17:28
+So by assuming that there will be multiple times in a day.
+
+17:33
+So the date the file is coming with a time stamp OK.
+
+17:36
+So that time stamp we are capturing like till what time stamp file is loaded into the system and after that suppose we are running again that job.
+
+17:46
+So it will go to that particular location and it will check it will extract the timestamp from the file like I'll show you the file.
+
+17:59
+So here there's a date and time.
+
+18:02
+So this date and time it is extracting OK and then it is checking from the Dynamo DB where we are maintaining that latest time stamp and it will it will it will just check which one is the greatest one if there is any file with the greatest with that particular time stamp.
+
+18:20
+So all file it will load again.
+
+18:23
+OK.
+
+18:23
+So that's how it it will maintain for other chunk of file.
+
+18:30
+All right.
+
+18:30
+So basically you're saying that if you have the 10 files and then one point of time you have 3 files, each file has the date time value in it and other third the largest file that sorry, not the largest.
+
+18:43
+The latest file information is stored in the Dynamo DB where you process all the three files.
+
+18:48
+And next time when it runs again, right now you're saying it's not it's it's only one.
+
+18:54
+But if suppose it runs again on the same day, it can process the next three set of files based on the value refers on the Dynamo DB and it'll pick up the next set of files.
+
+19:03
+Is that right?
+
+19:04
+Correct.
+
+19:05
+So here we are extracting the timestamp from the file and the list of the file.
+
+19:12
+How many leads lists are there with the greatest timestamp where it is just a moment before this double auto process landing to no, sorry I was in a different file here it is OK.
+
+19:40
+So if you'll explore this method right, so you'll understand like how we are maintaining and how we are checking that greatest file and then the greatest, you know, the file list it is coming.
+
+19:52
+And then we are processing for those list of file only.
+
+19:57
+OK, OK.
+
+20:00
+And you're doing only appends or are you doing like insert?
+
+20:03
+Is there any you're doing inserts only or like updates and deletes that is handling OK that that is also handling in this.
+
+20:14
+So, you know, we thought like what was my thought like we will do all you know, upset mechanism in raw layer only like a landing to raw and there will do that all our.
+
+20:28
+Offset mechanism, offset logic.
+
+20:29
+But client requirement was no, we need to maintain a duplicate data in a row and process in analytical layer.
+
+20:37
+We need a unique data.
+
+20:39
+So that's why we maintain the offset logic in analytical layer.
+
+20:42
+So I'll explain that also.
+
+20:44
+We'll go one by one.
+
+20:45
+OK.
+
+20:45
+So I was just going has basically a snapshot of all the data we like we duplicate data, but it's all snapshot on a particular day and you're maintaining.
+
+20:57
+OK, got it.
+
+20:58
+Yes, like a historical data because client requirement is like is that like what is deleted, what is updated and what happened in a historical time.
+
+21:08
+So we need all the details.
+
+21:10
+So you know the business is having access on a process layer and analytical layer.
+
+21:15
+So because of that till process layer we are maintaining a duplicate data.
+
+21:21
+Got it.
+
+21:22
+OK, sure.
+
+21:23
+Yeah.
+
+21:24
+So in a still like in the raw landing to raw and process a raw to process, there will be no differentiation like a similar data will be there, similar count will be there.
+
+21:35
+Only The thing is like when we are going to analytical layer here we are maintaining the offsort logic.
+
+21:43
+So for doing offsort first we are doing the deduplication like whatever the data is there in raw and process, we need only unique data in analytical layer.
+
+21:54
+So for making a unique we need a primary key.
+
+21:59
+So you can see some of the things we are here maintained as a you know mandatory for that we are raising exception, OK.
+
+22:08
+So this primary key last modified and pre combined conditions I'll go 1 by 1.
+
+22:13
+So for currently I need a primary key.
+
+22:15
+So very very basic things for the delta is like we need a one primary key or you know composite key also we can use it.
+
+22:25
+So for using that key we can just do a deduplication from process layer and we can maintain in our analytical layer.
+
+22:33
+So there will be no duplicate data.
+
+22:36
+OK so we are taking as a primary key and that we are taking from the Dynamo DB as a parameters we are we are maintaining there.
+
+22:47
+So it will be either one or more than 1 based on the condition and what will you update or like on which conditions data need to be update.
+
+22:59
+So we are maintaining two set of things like a pre combined condition.
+
+23:03
+Some tables have their own detail and on condition to, you know, update the data and some is having the last modified column like which which we'll identify that which one is the latest data for update.
+
+23:17
+Suppose we have A2 to 3A4 to like a 2 two to three datas with the same primary key.
+
+23:24
+So on which condition we'll think like which one is a updated one that need to be going to that analytical layer.
+
+23:31
+So based on the last modified so that column we are maintaining, you know, Dynamo DB framework parameters for each and every table.
+
+23:39
+So I'll go to that Dynamo DB first so it will be easy to understand.
+
+24:13
+So here there is a 2 primary key.
+
+24:17
+So based on this two primary key, what we'll do we'll just you know, take the data and we'll identify which one is in unique data and that that only we need to take it.
+
+24:31
+So, OK, so here we have written, we have written offset function OK, where we are taking all all the you know, required parameters, primary key, deletion column and update condition, last modified and target table, target database everything OK.
+
+25:02
+And then we are doing this.
+
+25:03
+So initially we are just doing the deduplication with the primary key, OK.
+
+25:10
+And if we have any indication like a, we are passing as a delta indicator like AD for deletion OK.
+
+25:19
+So currently we are just maintaining AD OK.
+
+25:22
+And apart from D if there is a double record with the same primary key, so whatever will be the latest one that will come as update condition if there is no D and no duplicate data.
+
+25:35
+So it will consider as a insert OK.
+
+25:40
+So this method is basically we have written for that OK.
+
+25:44
+So we are we are joining that based on the condition.
+
+25:48
+So these are the condition written and here all the conditions are making as a query and then that query is being executed.
+
+25:56
+OK.
+
+25:57
+And this just a minute, this set of query is just for the date duplication with the rank.
+
+26:03
+So you can see here we are doing the partition by the primary key over order by the last modified date and rank will be 1.
+
+26:10
+So this still this will just make a unique of the data.
+
+26:14
+So it's a very simple query.
+
+26:15
+Everyone knows it OK and the list of column like whatever the column is required in analytical table that list of column will come from a Dynamo table.
+
+26:27
+Here I think in a full load also we are maintaining these things only additional parties like here we are adding the primary key partition column.
+
+26:39
+Partition column is also there in that full load, last modified and delta with indicator.
+
+26:46
+So if that delt that particular table is having a indicator that means indicator means it.
+
+26:52
+That file will come as a indicator D for delete.
+
+26:56
+So that if that table is having an indicator that means it will be true otherwise it will be false.
+
+27:01
+I'll go other example where we have a true solution attribute history Yeah here you can see it's a true.
+
+27:14
+Then if it is a true then we need a delete flag column also.
+
+27:20
+So you can see delete flag column this this flag will have D as a indicator for deletion file OK and U will be there for the update.
+
+27:30
+So only we are considering D here in our logic.
+
+27:34
+We are not checking for AU and any other character so I'll go to that.
+
+27:41
+I'll show you here.
+
+27:44
+OK so when it will match deletion column there is AD then that means it will for delete.
+
+27:50
+OK there is no D but there is a multiple data.
+
+27:54
+So we need a clean update condition.
+
+27:58
+Actually it is renamed whatever the pre combined condition it is for.
+
+28:02
+Based on that it will update if there is no D and there is no duplicate data.
+
+28:08
+So it will assume as a insert.
+
+28:13
+OK, I think Sasmita, raise hand.
+
+28:19
+Sasmita, you can go ahead then I'll come.
+
+28:26
+Yeah.
+
+28:27
+Sasmita, do you have any questions?
+
+28:35
+Maybe you are speaking in mute.
+
+28:41
+OK, so Vimal, the question here is, so basically when we are processing the data from process to analytic, so we are only considering the only last partition or the current partition, right?
+
+28:54
+The whatever partition that we have loaded OK, so on that partition and we are making the D duplicate logic and and then updating it insert and update updating in the analytical layer table, correct.
+
+29:09
+It is basically it will go and it will merge into that existing data, existing data, right.
+
+29:16
+So the only only I did not understand about this delete logic.
+
+29:22
+So you you you are saying that so from source system there are there might be some data got deleted that data we are deleting from analytical table.
+
+29:34
+Yes, like in a in a process layer data will be there.
+
+29:39
+But there is a one extra column that is called a deletion indication, OK kind of a soft delete, right soft delete.
+
+29:48
+So that deletion indication will be there and that will be there in like AD or U OK that table so that when that data will come to analytic layer.
+
+30:00
+So we here we are merging into the source data, sorry.
+
+30:04
+So from source to target data, target means analytical table, source means process layer, OK, so here it will just go and check in our whatever the partition data we have, you know we have right now from source.
+
+30:20
+So is there in AD, OK, So D means that we have to delete.
+
+30:25
+OK so this is a iceberg existing joining merge logic which is available in Amazon site.
+
+30:35
+OK so we have used that logic so it will go there and whatever the data will match with that it will just remove from the analytical layer.
+
+30:44
+OK so this is for this.
+
+30:47
+OK OK got it.
+
+30:48
+So basically there are some there would be some column in the source in the process layer table with with the with the data as D or I or D for deletion, I for insert and U for update right.
+
+31:02
+So if they if you if you find any data for D, then you are making some delete from the target table as well.
+
+31:10
+Yes.
+
+31:10
+Can I show some examples so that I follow maybe I'm not following so much can can you show me some example so that I can just follow that quickly?
+
+31:20
+Like what is there in the process layer?
+
+31:22
+Because you do it from process to analytics right before process layer.
+
+31:25
+Where is that column?
+
+31:27
+And what are these conditions which satisfy some example?
+
+31:29
+I can just look at it.
+
+32:09
+I don't know whether data is not what in a dev system data is not there.
+
+32:16
+I'm just let just a minute I'll log into QA.
+
+32:21
+I was doing some test so before this call I just dropped all the table from there.
+
+33:53
+So this is a delta indicator.
+
+33:58
+So currently there is AU, so here it will be D also.
+
+34:03
+I'll just remove this.
+
+34:24
+So basically you records you are already handling it based on the process time stamp that incremental methods that you are using right?
+
+34:35
+For the D record this this, this records are coming from the source itself, OK And OK, just we are looking if there is any D that means we have to delete OK?
+
+34:45
+So basically if there is a it's a different table.
+
+34:49
+Are you talking about?
+
+34:49
+No, no, it's, it's the same process.
+
+34:53
+Yeah, it's coming from the same process.
+
+34:55
+We are not doing anything because whatever need to be delete, right.
+
+35:00
+So that will come from the source then only it will like execute here, right.
+
+35:05
+So we're not doing anything related to delete indicator.
+
+35:10
+So delete indicator just if there is AD that means delete, you know, if that's that record should not be there in analytical layer if there is AU or anything else.
+
+35:20
+So we had not considered about U and I initially we thought like we'll you know, we'll check U for update, I for insert.
+
+35:28
+Then without like maintaining all, you know, unnecessary character, we'll just use AD for delete.
+
+35:33
+There is a multiple record means update, there is a single record means insert with the primary key.
+
+35:42
+So when you say it's coming from, so this is SAP source where you are getting they're maintaining IUD from in source only a specific column is there which you're getting from Yes, yes, yes, yes.
+
+35:58
+Amit, I think this the requirement that was given I think it's based on the click replicate, the incremental like click replicate has the capability of the change data capture ID and U they generate these columns click replicate.
+
+36:15
+I think based on that or maybe see see here you can see business partner address operational type is I and D will be there.
+
+36:26
+So last we can just we are maintaining as AU or something you there is a there was AI right here it's AU.
+
+36:36
+So sometimes you know tester was confused like which one we need to be used because there is AI and D coming in that and here is coming U&D in this column.
+
+36:47
+So if there is any record with AD so that will you know just remove from the analytical layer.
+
+36:53
+This is only the column and you know, we are given the parameters details in a Dynamo TV, whatever the it's gone now, gone now.
+
+37:02
+So whatever is the delete indicator column so that we can, you know, change here based on that column name, it will go and search our logic.
+
+37:13
+OK, this is this things.
+
+37:16
+These all are the parameterize because it's not, you know fix that whatever the column is there a deletion column, it will be the same like at the here you can see installation history and then ODQ change mode.
+
+37:29
+So based on the table name, the column name will change.
+
+37:32
+So that's why it is all parameterize and we have to provide here.
+
+37:36
+But you will have only 1D logic.
+
+37:38
+You are saying that delta column you are saying there will be multiple delta columns for a particular table.
+
+37:47
+The the delta flag column delta flag column No, no, no, no, no that that will be single like primary key will be multiple, pre define conditions will be multi multiple, last modified will be multiple but delta indicator flag flag will be one single and this delta indicator flag will have IUD right?
+
+38:07
+The example which is, is that right?
+
+38:10
+Yes, yeah that only you can yeah.
+
+38:13
+And what what you were showing right now I saw in the same record, I saw I and D sorry.
+
+38:18
+I what was that?
+
+38:21
+That was I'm saying there was a 2 column but we we are not maintaining that.
+
+38:26
+I said that there is AI here, but we are not considering I and D was coming in this particular column.
+
+38:34
+OK, But we are using this one from the business confirmation from the business like we have to use this ODQ change mode, OK, that couple of columns but only one column which is IL one.
+
+38:47
+OK, got it, got it.
+
+38:48
+OK.
+
+38:49
+So you said there are couple of flavors like does every table has this column or no, No no it's not depend like if the table have a delete indicator that that means that column will be there, some column will be there as an indicator.
+
+39:06
+So those indicator need to define here like in a in a Dynamo DB table.
+
+39:12
+Here we have A1 conditional parameters true or false.
+
+39:17
+That means delta indicator.
+
+39:18
+If there is a delta indicator, we need a delta flag column.
+
+39:26
+If the delta indicator is not there, it will be false.
+
+39:29
+Then we need primary key, last modified and precombine, precombine partition key like a precombined conditions OK somewhere it will be there and down OK like like if we don't want to delete anything.
+
+39:46
+So what is the basic things required for the delta is primary key and last modified date.
+
+39:51
+Based on that only we'll do the deduplication and last update which was the greatest one, right?
+
+39:57
+Alright so if you're saying if there is a delta column we will not use the composite primary key because you have already have that identification done and the last modified date also is also maintained in random DB on what was the last merge done?
+
+40:15
+In either of the scenario, right, If delta plus the last updated or composite key plus the last updated call date, correct.
+
+40:25
+Based on this two combinations only you do the merge, is that right?
+
+40:28
+Correct?
+
+40:29
+Correct.
+
+40:30
+Correct, correct.
+
+40:32
+Can you show me that code again the three conditions what you were showing?
+
+40:35
+Yeah.
+
+40:36
+So OK you you can that all codes are there in a main branch.
+
+40:42
+So you can you know, just go through this so you'll understand and this all piece of you know, this March condition we have taken from there from AWS site only iceberg for iceberg especially how many records are coming like right now.
+
+41:03
+Like I'm just asking in terms of performance, how this is good like in this will be you know, if there will be huge data like crores of datas, then it will take time this March, OK, because E for it will go for each and every record it will check and then it will compare and then it will do.
+
+41:26
+So this is if there is a huge data daily delta that then this is not for that delta means only chunk of data like Dell laks one, at least one crores of data.
+
+41:38
+So it will it will be there will be no much impact on that.
+
+41:42
+But if there is a you know, 100 crores and thousand crores data as a delta then then it is not for the delta.
+
+41:51
+Yeah, that's what I because there is A1 table we thought like we'll maintain as a, you know delta here that's a full load.
+
+42:00
+So that was giving a pain.
+
+42:04
+Wait just a minute, I think we have delta and so before implement before executing the delta job, right.
+
+42:13
+So basically if you are taking so first time you need to do the full load, right?
+
+42:22
+Yes, like it will be full load only.
+
+42:23
+We are not doing any full load.
+
+42:25
+This framework will handle as a full load.
+
+42:28
+OK, OK, got it.
+
+42:29
+OK, so we are not especially handling see here business partner and SFP contract.
+
+42:36
+This was a full load like a daily same type of data was coming.
+
+42:40
+So it was going through like you know it was taking much any I mean we were like waiting for so much, so much time.
+
+42:49
+So we thought like we'll you know pass it as a full load framework and will not do anything for this.
+
+42:55
+So this for this particular 2 table you can see in in our this analytical direct only we are not giving as a merge condition.
+
+43:03
+We are just doing over it with partition they're also down.
+
+43:09
+I have given that condition this offshirt and then here for business partner and contract attributes I am just doing partition override partition by override here for that only for those two table.
+
+43:27
+So you mean to say irrespective of the full load and delta load, is it going to scan every table for each column to have whether it is this delta or have something to delete?
+
+43:37
+Yes, yes, yes, yes, yes.
+
+43:40
+OK, like if there is a deletion column that means that's an indicator.
+
+43:46
+So that's that only you know here if can see in our code here primary key last modified and this sorry, these are the mandatory key for maintaining the delta.
+
+44:05
+If there is a delta indicator OK then we need a delta indicator column details and then all things we need to pass it here when we are calling a upsert right upsert method OK just for if there is a deletion is required.
+
+44:31
+So we are checking for delete indicator.
+
+44:39
+OK.
+
+44:40
+And Vimal, we are not doing anything as part of SCD 2.
+
+44:46
+SCD 2 means like for for slowly changing dimensions.
+
+44:52
+We are not like whenever we are updating for that key, we are just updating it out.
+
+44:58
+We are not maintaining history as part of his slowly changing.
+
+45:01
+No, in yeah in in analytical layer we are not maintaining anything.
+
+45:06
+Initially we thought will maintain in a process layer but now the you know that you know three time we had we have done the update last time last month testing was completed again this month testing is going on.
+
+45:19
+OK.
+
+45:20
+So now history means everything should be there in process layer.
+
+45:24
+That's what the the requirement was there from the business got it.
+
+45:29
+There is no slowly changing type 2 kind of requirement as of now and this framework will not support that right now.
+
+45:36
+That's what you're saying, correct?
+
+45:38
+No, no.
+
+45:39
+OK.
+
+45:39
+And one question I had you talked about delta column if it has then you'll go with that.
+
+45:46
+If they doesn't have delta column use composite primary keys for identification.
+
+45:51
+Suppose composite primary key is also not there.
+
+45:54
+So do you do checksum or what do you do in this?
+
+45:57
+Yes, that's I said it's there is a three column mandatory.
+
+46:01
+We are raising exception for this.
+
+46:04
+OK, you do check some as a last resort like for all the column combination of all the column, is it?
+
+46:09
+Yeah, yes, yes not combination.
+
+46:12
+At least one column should be there in a primary key last modified and pre combined in our method.
+
+46:19
+We are just merging those in absurd.
+
+46:21
+We if you go there SO33 combined condition is what sorry can you go on the top 1/3 combined condition is for like a primary key is for identify which one is there should be something to identify which like what we are doing for data.
+
+46:41
+So primary key will identify the record last modify will provide you the latest information which is the latest and all precombined information on which condition you want to update.
+
+46:53
+So this 2 will be sometimes same OK based on the you know the table requirement it will be also precombine is a combination of primary key and D1 No No 3 combined combined condition will be like on which condition like like suppose one or two or three column based on that three columns whatever will be the latest data that we need to be you know as a single like like as a latest record.
+
+47:25
+So that that combination OK, there was some table with because of that this column is added.
+
+47:32
+Otherwise we were maintaining with this 2 only this 2 is more than enough to maintain the, you know, unique record in the system.
+
+47:43
+I didn't understand actually pre common.
+
+47:46
+So you're saying that if you have two conditions, 2 conditions with waters, but two conditions, right?
+
+47:52
+Just just so precondition is bimal.
+
+47:55
+So my understanding is precondition is nothing, but apart from primary key, you'd have and there are a couple of more columns that you need to include to identify the duplicates, right?
+
+48:07
+This is a this is a brief combined condition, update condition.
+
+48:11
+So here I said last updated date, last updated date as a sorry, not this one last modified See last modified is different here this one OK, And here last updated date greater than equal to last updated date.
+
+48:30
+So this is what is a condition.
+
+48:32
+This is a pre combined on which condition you want to update.
+
+48:36
+OK, So basically it's kind of a filtering out the data or something like that.
+
+48:41
+OK, OK, it's nothing but nothing to do with the deduplicating the data, right?
+
+48:50
+Yes like this will help you to make us unique and single record.
+
+49:00
+OK, so this goes in combination with some with with the primary key and last, what is that the the last modified?
+
+49:12
+Yeah, last modified one last modified 2.
+
+49:15
+Yeah, this and then primary key.
+
+49:19
+So if you come to the code up sort where is common see this update condition OK if there will be multiple line, so just making a There OK And there is a primary multiple primary key.
+
+49:52
+So just it is joining OK one and two.
+
+49:56
+So heat is coming.
+
+49:59
+We need to select all the list of the data deletion column if it is there or not based on that then primary key last modified here this is this is making a unique but we need for update on which condition we need to update.
+
+50:17
+So that is coming here that's a precombine is being used.
+
+50:27
+OK, OK, name is change here.
+
+50:30
+Don't be confused with the clean update condition, that's precombine.
+
+50:35
+In other places update condition the same things vertical, direct, pre precombine and then you're like a delta.
+
+50:55
+If you already have a delta logic then pre combine also would be like the same thing right?
+
+51:02
+It is like confusing because you already have DD column indicator from the source we are not using the see see there's a 2 type of two set of data.
+
+51:13
+1 is a with a delta condition.
+
+51:15
+What do you what is 1 is without delta condition.
+
+51:17
+If there is no delta that means we need a something to update for that we need a pre combined condition.
+
+51:24
+And even though we have a delta with indicator for the delete, there will be some data for update.
+
+51:30
+For that we need a precombined condition, clear OK for basically OK within that data set to get the latest record.
+
+51:40
+That is what you're getting a precombined condition.
+
+51:43
+Yes, in those sets.
+
+51:44
+OK, OK, OK.
+
+51:47
+And sorry one sorry, can you go on the top then what is this last modified and update condition that the same?
+
+51:56
+I thought that was the last modified is to update the is to update that pre combined condition.
+
+52:02
+Is it this is for ranking?
+
+52:05
+This is for ranking, yes.
+
+52:07
+OK, if you go through the code right you will understand this is for ranking.
+
+52:18
+Here we are doing the rank right.
+
+52:21
+Last one fired this pre combined condition.
+
+52:25
+Which table I said here for the update No no, no which table I'm saying like you said only one table you had issue like for that you included.
+
+52:37
+Is there a specific table so that we can look at that?
+
+52:42
+No, no, no, no.
+
+52:45
+This is this is coming for all for update.
+
+52:47
+Initially we were maintaining with this too.
+
+52:54
+OK, this is common for all tables.
+
+52:56
+Now if there is some, there is no conditions and all.
+
+53:00
+So for some tables it is coming like a last update.
+
+53:04
+You see where it is if that table is not having this this column.
+
+53:14
+So at least we are having last updated date, right?
+
+53:16
+For all the last updated date, last updated date here.
+
+53:20
+So the last last modified means last updated column date will come here.
+
+53:25
+So for that time it will be same, right?
+
+53:28
+This one and here it'll this will be similar, right?
+
+53:33
+That's what that's what I was saying.
+
+53:37
+OK, OK.
+
+53:42
+And one other question, like you said, if there is a no primary keys defined in the column, you are by default selecting all the columns are there in this required columns.
+
+53:53
+No, no, no, no, no, no.
+
+53:54
+It will throw an exception here Delta it will go and it will check if there is no primary key in our delta record.
+
+54:06
+So it will throw an exception.
+
+54:08
+Here we are, we have a 2 table for the full load.
+
+54:13
+Even though we are maintaining those column for that we are not using full load but it is coming from this process.
+
+54:20
+So it will go with the check.
+
+54:22
+If there is no there is no you know value for this column it will throw an exception.
+
+54:31
+OK, OK, OK.
+
+54:35
+Maybe I think we will review this code and then we will come back for further questions.
+
+54:41
+You'll understand.
+
+54:42
+I don't I don't think so you'll come back again.
+
+54:45
+OK, if this is not a your complicated code, it's a very simple thing.
+
+54:50
+It's just about the condition and not about the code.
+
+54:53
+I would say it's more about the conditions on where it, when, how the flow actually looking is what I was trying to understand.
+
+55:01
+I got a understanding, but it's more of reading through the condition and understanding the flow.
+
+55:08
+So you need to understand about this merge logic first.
+
+55:12
+OK, how it is being merged because here you'll become confused.
+
+55:18
+There is a two things one is for the making a unique and one other is for delete, update and insert.
+
+55:23
+OK, so once you'll understand about this merge conditions, right and merge what you called the statement how it is given example in AWS.
+
+55:34
+So you'll you'll get understand because here it's being you know, join, join from source to target on which condition on the delete condition, insert condition and update condition, OK.
+
+55:48
+So once this you will you will go through this, you will understand, OK.
+
+55:52
+And there is nothing big things in like here making you know, check and all.
+
+56:04
+OK.
+
+56:07
+Yep.
+
+56:09
+I have a call now 830.
+
+56:14
+OK Vimal, any other question from anyone to Vimal, I know we are almost one minute late.
+
+56:25
+OK, Vimal.
+
+56:26
+Thanks for your.
+
+56:28
+Yeah.
+
+56:28
+Thanks Vimal for your time.
+
+56:29
+Thank you.
+
+56:30
+Bye.
+
+56:30
+Thanks a lot.
+
+56:31
+Bye.
+
+56:31
+Bye.
