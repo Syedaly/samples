@@ -10,9 +10,9 @@ def lambda_handler(event, context):
     sqs = boto3.client('sqs')
     
     # Configuration - to be set in Env
-    STATE_MACHINE_ARN = 'arn:aws:states:us-west-2:420393866958:stateMachine:sap-poc-datalakepredevtest3'
-    SNS_TOPIC_ARN = 'arn:aws:sns:us-west-2:420393866958:DeltaFiles-StepFunctionCallback'
-    SQS_QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com/420393866958/file-processing.fifo'
+    STATE_MACHINE_ARN = 'arn:aws:states:us-west-2::stateMachine:sap-poc-'
+    SNS_TOPIC_ARN = 'arn:aws:sns:us-west-2::DeltaFiles-StepFunctionCallback'
+    SQS_QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com//file-processing.fifo'
     
     print(f"Received event: {json.dumps(event, default=str)}")
     
