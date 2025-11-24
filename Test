@@ -1,350 +1,232 @@
-from pyspark.sql.functions import col, lpad, ltrim, rtrim, row_number
-from pyspark.sql import functions as F
-from delta.tables import DeltaTable
-from datetime import datetime, date
-from pyspark.sql import SparkSession
-from pyspark.sql.window import Window
-import json
+Added Pre-submission checklist section to ensure mandatory things to populate 
 
+Added new column for Data Conversion like ALPHA, PERI5 etc. 
+ 
 
-spark = SparkSession.builder.getOrCreate()
+******************Prompt Starts from Below section************* 
 
-def get_date_partition_path(target_date=None):
-    if target_date is None:
-        target_date = date.today()
-    
-    year = target_date.strftime("%Y")
-    month = target_date.strftime("%m")
-    day = target_date.strftime("%d")
-    
-    return f"year={year}/month={month}/day={day}"
+#########################################################################  
 
-def extract_timestamp_from_filename(filename):
-    try:
-        timestamp_str = filename.replace('.csv', '').replace('.parquet', '')
-        date_part = timestamp_str[:8]
-        time_part = timestamp_str[9:15]
-        datetime_str = f"{date_part}{time_part}"
-        return datetime.strptime(datetime_str, "%Y%m%d%H%M%S")
-    except Exception as e:
-        print(f"Error parsing timestamp for {filename}: {e}")
-        return None
+# SAP BW to Microsoft Fabric Migration: Source-to-Target Mapping   
 
-def get_gold_params(sourceTable, targetPath, processingDate):
-    print(f"Getting gold params for: {sourceTable}, {targetPath}, {processingDate}")
-    return {
-        "sourceTable": sourceTable,
-        "targetPath": targetPath,
-        "processingDate": processingDate
-    }
+## **Context & Architecture Requirements** 
 
-def get_oldest_unprocessed_file_for_target_table(target_table):
-    try:
-        # Get files for the specific target table that are ready for Gold processing but not yet processed
-        getSourcePath = spark.read.table("paramsSilver").where(f"TargetTable = '{target_table}' AND ProcessedSilver = true AND ProcessedGold = false")
-        
-        if getSourcePath.count() == 0:
-            print(f"No unprocessed files found for TargetTable: {target_table}")
-            return None
-        
-        all_files = [row.asDict() for row in getSourcePath.collect()]
-        print(f"Found {len(all_files)} unprocessed Silver files ready for Gold processing for table: {target_table}")
-        
-        # Extract timestamps and sort to find oldest
-        files_with_timestamps = []
-        for file_info in all_files:
-            source_table = file_info["SourceTable"]
-            timestamp = extract_timestamp_from_filename(source_table)
-            if timestamp:
-                files_with_timestamps.append((file_info, timestamp))
-        
-        if not files_with_timestamps:
-            print(f"No valid timestamp files found for target table: {target_table}")
-            return None
-        
-        # Get the oldest file
-        oldest_file = sorted(files_with_timestamps, key=lambda x: x[1])[0]
-        print(f"Oldest unprocessed file for {target_table}: {oldest_file[0]['SourceTable']}")
-        
-        return oldest_file
-        
-    except Exception as e:
-        print(f"Error getting oldest unprocessed file for target table {target_table}: {e}")
-        return None
+**Context** : I am working on a SAP BW to Microsoft Fabric migration project. We have metadata of SAP Process Chain. You must analyze the process chain document 
 
-def get_oldest_data_from_silver(silver_path, source_table):
-    try:
-        source_parquet = source_table.replace('.csv', '.parquet')
-        specific_file_path = f"{silver_path}/{source_parquet}"
-        
-        print(f"Reading specific Silver file: {specific_file_path}")
-        
-        try:
-            df_silver = spark.read.parquet(specific_file_path)
-            print(f"Successfully read specific file {source_parquet}: {df_silver.count()} rows")
-            return df_silver
-        except:
-            print(f"Specific file not found, trying Delta table approach...")
-            
-            df_silver = spark.read.format("delta").load(silver_path)
-            
-            source_columns = ["source_bronze_file", "source_file", "bronze_source_file", "original_file"]
-            source_col = None
-            
-            for col_name in source_columns:
-                if col_name in df_silver.columns:
-                    source_col = col_name
-                    break
-            
-            if source_col:
-                df_filtered = df_silver.filter(F.col(source_col) == source_table)
-                print(f"Filtered Silver data for {source_table} using {source_col}: {df_filtered.count()} rows")
-                return df_filtered
-            else:
-                print(f"No source tracking column found - returning all Silver data: {df_silver.count()} rows")
-                return df_silver
-            
-    except Exception as e:
-        print(f"Error reading Silver data: {e}")
-        return None
+as per the below requirements.   
 
-def update_processed_gold_status(source_table, target_table, success=True):
-    try:
-        if success:
-            spark.sql(f"""
-            UPDATE paramsSilver 
-            SET ProcessedGold = true 
-            WHERE SourceTable = '{source_table}' AND TargetTable = '{target_table}'
-            """)
-            print(f"Updated ProcessedGold = true for {source_table}")
-        else:
-            print(f"Processing failed - ProcessedGold remains false for {source_table}")
-    except Exception as e:
-        print(f"Error updating ProcessedGold status: {e}")
+**Architecture** 
 
-def process_silver_to_gold(param_info):
-    source_table = param_info['SourceTable']
-    target_table = param_info['TargetTable']
-    silver_path = param_info['TargetPath']
-    processing_date = datetime.now()
-    
-    gold_params = get_gold_params(source_table, silver_path, processing_date)
-    
-    path_parts = silver_path.split('/')
-    source_file = path_parts[3] if len(path_parts) >= 4 else "unknown"
-    
-    print(f"Processing: {source_table} from {source_file} -> {target_table}")
-    print(f"Silver path: {silver_path}")
-    print(f"Gold params: {gold_params}")
-    
-    try:
-        if not silver_path:
-            print(f"No Silver path found for {source_table}")
-            return False
-        
-        df_source = get_oldest_data_from_silver(silver_path, source_table)
-        
-        if df_source is None:
-            print(f"Failed to read Silver data from: {silver_path}")
-            return False
-            
-        source_count = df_source.count()
-        print(f"Source records from Silver: {source_count}")
-        
-        if source_count == 0:
-            print(f"No data found for {source_table} in Silver path: {silver_path}")
-            return False
-        
-        print(f"Available columns: {df_source.columns}")
-        
-        print("Applying Gold transformations...")
-        if "equipment_number" in df_source.columns:
-            df_transformed = df_source.withColumn("equipment_number", 
-                                                lpad(ltrim(rtrim(col("equipment_number"))), 18, '0'))
-            print("Applied equipment_number padding transformation")
-        else:
-            df_transformed = df_source
-            print("No equipment_number column found - no transformations applied")
-        
-        transformed_count = df_transformed.count()
-        print(f"Transformed records: {transformed_count}")
-        
-        date_path = get_date_partition_path()
-        gold_path = f"Files/Gold/SAP/{target_table}/{date_path}"
-        
-        mssparkutils.fs.mkdirs(gold_path)
-        print(f"Gold destination path created : {gold_path}")
+- Ingestion: Qlik Replicate (SAP→S3 Parquet)
+- Processing: Microsoft Fabric Notebook ETL 
+- Storage: S3 Medallion + Delta tables in Microsoft Fabric Lakehouse 
 
-        # ###Dedups
-        # # Deduplicate to avoid merge conflicts
-        # window_spec = Window.partitionBy("register_number").orderBy("register_number")
-        # df_transformed = df_transformed.withColumn("row_num", row_number().over(window_spec)).filter("row_num = 1").drop("row_num")
-        # print(f"After deduplication: {df_transformed.count()}")
-        
-        try:
-            is_delta_table = DeltaTable.isDeltaTable(spark, gold_path)
-        except:
-            is_delta_table = False
+**Medallion Jobs:** 
+1. Landing→Bronze: "landing-to-bronze-[chain-name]" 
+2. Bronze→Silver: "bronze-to-silver-[chain-name]" 
+3. Silver→Gold: Individual per target table 
+  
 
-        if is_delta_table:
-            print("Gold Delta table exists - performing upsert...")
-            
-            try:
-                delta_table = DeltaTable.forPath(spark, gold_path)
-                
-                merge_key = "register_number" #"equipment_number" #This seems to be the key as per chain
-                
-                if merge_key in df_transformed.columns:
-                    merge_condition = f"target.{merge_key} = source.{merge_key}"
-                    print(f"Merge condition: {merge_condition}")
-                    
-                    delta_table.alias("target").merge(
-                        df_transformed.alias("source"),
-                        merge_condition
-                    ).whenMatchedUpdateAll(
-                    ).whenNotMatchedInsertAll(
-                    ).execute()
-                    
-                    print("Upsert completed successfully")
-                else:
-                    print(f"Merge key {merge_key} not found - performing append instead")
-                    #df_transformed.write.format("delta").mode("append").save(gold_path)
-                    df_transformed.coalesce(1).write.mode("overwrite").parquet(gold_path)
-            except Exception as e:
-                print(f"Upsert failed: {e}")
-                return False
-                
-        else:
-            print("Gold Delta table doesn't exist - creating new table...")
-            try:
-                #df_transformed.write.format("delta").mode("overwrite").save(gold_path)
-                df_transformed.coalesce(1).write.mode("overwrite").parquet(gold_path)
-                print("New Gold Delta table created successfully")
-            except Exception as e:
-                print(f"Write failed: {e}")
-                return False
-        
-        final_count = spark.read.format("delta").load(gold_path).count()
-        print(f"Final records in Gold layer: {final_count}")
-        
-        # Update ProcessedGold status to true
-        update_processed_gold_status(source_table, target_table, success=True)
-        
-        print(f"SUCCESS: {source_table} -> {target_table}")
-        print(f"Records processed: {final_count}")
-        print(f"Gold location: {gold_path}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"ERROR: Failed to process {source_table}")
-        print(f"Error details: {str(e)}")
-        print(f"Silver path: {silver_path}")
-        print(f"Target table: {target_table}")
-        
-        # Update ProcessedGold status remains false on failure
-        update_processed_gold_status(source_table, target_table, success=False)
-        return False
+## Task: Generate Source-to-Target Mapping from SAP Process Chain Document   
 
-# MAIN EXECUTION - Process only one specific target table
-print("GOLD LAYER PROCESSING - SINGLE TABLE PROCESSING")
+Step 1: Extract ALL TARGET TRANSFORMATIONS from RSPC_OUTPUT sheet
+- Identify EVERY row where STEP_TYPE = "DTP_LOAD"
+- Extract ALL unique combinations of (STEP_ID, TARGET_NAME) as separate transformations
+- Do NOT filter or prioritize - each combination represents a distinct ETL job requirement
+- Expected result: Complete list of all transformation targets, not just "final" ones
 
-target_table_to_process = "installed_register_technical_data"
+Example format: 
+STEP_ID_1 → TARGET_A
+STEP_ID_2 → TARGET_A  (different transformation to same target) 
+STEP_ID_3 → TARGET_B 
+  
 
-print(f"Processing target table: {target_table_to_process}")
+**Step 2:** For each (STEP_ID, TARGET_NAME) combination, create direct source-to-target mappings by: 
+- Within EACH individual STEP_ID: Skip intermediate staging tables and map directly from original source to final target
+- ACROSS different STEP_IDs: Treat each as a separate transformation (do not skip) 
+- Rule: If STEP_ID_X has Source_A → Intermediate_B → Target_C, then map Source_A → Target_C
+- Rule: If STEP_ID_Y also targets Target_C, create a separate mapping for STEP_ID_Y 
 
-# Get the oldest unprocessed file for the specific target table
-file_to_process = get_oldest_unprocessed_file_for_target_table(target_table_to_process)
+Example: 
 
-if file_to_process:
-    file_info, timestamp = file_to_process
-    
-    print(f"PROCESSING SINGLE FILE:")
-    print(f"  SourceTable: {file_info['SourceTable']}")
-    print(f"  TargetTable: {file_info['TargetTable']}")
-    print(f"  Timestamp: {timestamp}")
-    print(f"  Silver Path: {file_info['TargetPath']}")
-    print(f"  ProcessedGold: {file_info['ProcessedGold']}")
-    
-    success = process_silver_to_gold(file_info)
-    
-    if success:
-        print("File processed successfully")
-        
-        print("PROCESSING COMPLETED SUCCESSFULLY")
-        print(f"Processed: {file_info['SourceTable']} -> {file_info['TargetTable']}")
-        
-        # Show remaining unprocessed files
-        try:
-            remaining_files = spark.read.table("paramsSilver").where(f"TargetTable = '{target_table_to_process}' AND ProcessedSilver = true AND ProcessedGold = false")
-            remaining_count = remaining_files.count()
-            print(f"Remaining unprocessed files for {target_table_to_process}: {remaining_count}")
-            
-            if remaining_count > 0:
-                print("Next files to be processed:")
-                remaining_files.select("SourceTable", "ProcessedSilver", "ProcessedGold").show(5, truncate=False)
-        except Exception as e:
-            print(f"Could not display remaining files: {e}")
-        
-        exit_result = {
-            "status": "completed",
-            "processed_files": 1,
-            "failed_files": 0,
-            "target_table": target_table_to_process,
-            "source_table": file_info['SourceTable'],
-            "processing_time": datetime.now().isoformat(),
-            "notes": f"Single table Gold layer processing completed for {target_table_to_process}"
-        }
-        
-    else:
-        print("File processing failed")
-        
-        exit_result = {
-            "status": "failed",
-            "processed_files": 0,
-            "failed_files": 1,
-            "target_table": target_table_to_process,
-            "source_table": file_info['SourceTable'],
-            "processing_time": datetime.now().isoformat(),
-            "notes": f"Single table Gold layer processing failed for {target_table_to_process}"
-        }
-    
-else:
-    print(f"NO UNPROCESSED FILES TO PROCESS FOR TARGET TABLE: {target_table_to_process}")
-    print("Possible reasons:")
-    print("1. All files for this target table are already processed to Gold (ProcessedGold = true)")
-    print("2. No Silver files found with ProcessedSilver = true for this target table")
-    print("3. Target table name doesn't exist in paramsSilver")
-    
-    # Show current status of files for this target table
-    try:
-        all_files_for_target = spark.read.table("paramsSilver").where(f"TargetTable = '{target_table_to_process}'")
-        total_files = all_files_for_target.count()
-        processed_silver = all_files_for_target.filter("ProcessedSilver = true").count()
-        processed_gold = all_files_for_target.filter("ProcessedGold = true").count()
-        
-        print(f"Status for {target_table_to_process}:")
-        print(f"  Total files: {total_files}")
-        print(f"  Processed to Silver: {processed_silver}")
-        print(f"  Processed to Gold: {processed_gold}")
-        print(f"  Remaining for Gold: {processed_silver - processed_gold}")
-        
-        if total_files > 0:
-            print("File processing status:")
-            all_files_for_target.select("SourceTable", "ProcessedSilver", "ProcessedGold").show(10, truncate=False)
-            
-    except Exception as e:
-        print(f"Could not display file status: {e}")
-    
-    exit_result = {
-        "status": "no_files_to_process",
-        "processed_files": 0,
-        "failed_files": 0,
-        "target_table": target_table_to_process,
-        "processing_time": datetime.now().isoformat(),
-        "notes": f"No unprocessed files found for target table {target_table_to_process}"
-    }
+- STEP_ID_1: 0BP_ATTR → ZBP_INTERMEDIATE → 0UCIODS08 = Map 0BP_ATTR → 0UCIODS08
+- STEP_ID_2: 0CREDIT → 0UCIODS08 = Separate mapping 0CREDIT → 0UCIODS08 
 
-print(f"Gold layer processing completed at {datetime.now()}")
-print(f"Exit result: {json.dumps(exit_result, indent=2)}")
+**Step 3: Analyze Data Transformation Logic from Source Table to Target Table** 
 
+From **TRFN_HEADER_OUTPUT** sheet: 
+
+For each combination of TARGET_NAME & STEP_ID: 
+
+- Extract START_ROUTINE_PART1/2 
+
+- Analyze START_ROUTINE_PART1/2 
+
+From **TRFN_DETAILS_OUTPUT** sheet: 
+
+For each combination of TARGET_NAME & STEP_ID: 
+
+- Map SOURCE_COL → TARGET_COL relationships 
+
+- Extract FIELD_ROUTINE_PART1 & FIELD_ROUTINE_PART2 (ABAP transformation code) 
+
+- Group by STEP_ID for each target table 
+
+### **Step 4: Generate Mapping Table** 
+Create a pipe-delimited table with these exact columns: 
+
+**Header:** 
+
+``` 
+
+SAP Process Chain Step ID|Database Name|Target Table Name|Target Column Name|Target Column Description|Key Flag|Column Order|Target Column Data Type|Transformation Rule|SAP Transformation Routine|Target Data Conversion|ABAP Code Conversion Confidence|Source Database Name|Source Table Name|Source Column Name|Source Column Data Type|Source Column Description|Comment 
+
+``` 
+
+For each combination of TARGET_NAME & STEP_ID: 
+  
+
+**Column Population Rules:** 
+
+- **SAP Process Chain Step ID** : From STEP_ID  
+
+- **Database Name**: "analytics_customer_db" 
+
+- **Target Table Name**: From FINAL_TARGETS 
+
+- **Target Column Name**: TARGET_COL from TRFN_DETAILS_OUTPUT sheet 
+
+- **Target Column Description**: TG_COL_DESC from TRFN_DETAILS_OUTPUT 
+
+- **Key Flag**: T_KEYFLAG from TRFN_DETAILS_OUTPUT 
+
+- **Column Order**: Key columns (T_KEYFLAG="X") first, then others 
+
+- **Target Column Data Type**: Convert using mapping below + precision from TAR_LENG/TAR_DECIMALS 
+  
+
+**SAP to Microsoft Fabric Data Type Mapping:** 
+
+``` 
+
+ACCP → date          CHAR → string        CLNT → integer 
+
+CUKY → string        CURR → decimal       DATS → date 
+
+DEC → decimal        FLTP → float         INT1/2/4 → integer 
+
+LANG → string        LCHR → string        NUMC → string 
+
+QUAN → decimal       RAW → string         SSTR → string 
+
+STRG → string        TIMS → timestamp     UNIT → string 
+
+```   
+
+- **Transformation Rule**: Convert FIELD_ROUTINE_PART1/2 + START_ROUTINE_PART1 to **SQL Format Only** 
+
+** ZZBW_CLEANTEXT**: Read this as text cleaning function similar to SQL syntax example --> REGEXP_REPLACE(REGEXP_REPLACE(COLUMN_NAME, '[\t\n\r]', ' '), '[^A-Za-z0-9 ]', '') 
+
+** Use SQL function to interpret ABAP Code conversion to SQL  
+
+** Use CASE, IF ELSE syntax for applicable scenarios  
+
+** Use other SQL functions like UPPER, LOWER, LTRIM,RTRIM, TRIM,INITCAP, SUBSTRING, LEFT, RIGHT, CONCAT, COMCAT_WS, REPLACE , REVERSE etc. 
+
+** For Lookup : Example LOOKUP <LOOKUP_TABLE> JOIN ON SOURCE.COLUMN_NAME = LOOKUP_TABLE.COLUMN_NAME GET LOOKUP_TABLE.COLUMN_NAME || LOOKUP_TABLE.COLUMN_NAME 
+
+** For Direct Transformation --> Mention **Direct Transformation** 
+
+** If **TAR_CONVEXIT** is available, convert this in SQL as a transformation rule. 
+
+Example : **ALPHA**  --> LPAD(LTRIM(RTRIM(COLUMN_NAME)), 4, '0') where '4' is the length of the target column 
+
+- **SAP Transformation Routine**: **FIELD_ROUTINE_PART1** from **TRFN_DETAILS_OUTPUT**. **ABAP Code Only** 
+
+- **Target Data Conversion**: **TAR_CONVEXIT** from **TRFN_DETAILS_OUTPUT**. **DON'T MODIFY** 
+
+- **ABAP Code Conversion Confidence**:  
+
+  - High: Successfully converted to **SQL** 
+
+  - Medium: Partially understood 
+
+  - Low: Requires manual intervention 
+
+- **Source Database Name**: "sap_processed_db" 
+
+- **Source Table Name**: SOURCE_NAME from TRFN_DETAILS_OUTPUT 
+
+- **Source Column Name**: SOURCE_COL from TRFN_DETAILS_OUTPUT 
+
+- **Source Column Data Type**: Convert SRC_DATATYPE using same mapping + SRC_LENG/SRC_DECIMALS 
+
+- **Source Column Description**: SR_COL_DESC from TRFN_DETAILS_OUTPUT 
+
+- **Comment**: Include data truncation notes, ALPHA conversions, developer guidance 
+
+**COMPLETENESS REQUIREMENT:** 
+
+- Extract EVERY row from TRFN_DETAILS_OUTPUT for each STEP_ID 
+
+- DO NOT provide samples results 
+
+- If a STEP_ID has 105 column *UNIQUE* target column, provide all 105 unique target column with corresponding source mapping 
+
+- Missing columns will result in incomplete ETL specification 
+
+  
+
+**DEDUPLICATION REQUIREMENT:** 
+
+- Identify ALL duplicate TARGET_COL names within each STEP_ID 
+
+- For duplicate targets, consolidate into ONE unique target column entry 
+
+- Combine transformation logic using CASE statements or any other appropriate SQL functions 
+
+- Comments: List all consolidated sources as "Consolidates: SOURCE1(type1), SOURCE2(type2)..." 
+
+- Example: If TARGET_COL "FISCYEAR" appears 4 times with different sources, create ONE "FISCYEAR" entry with consolidated logic  
+
+- Merge all FIELD_ROUTINE_PART1 variations into single comprehensive routine 
+
+  
+
+**IMPORTANT: Multiple STEP_IDs can target the same table 
+
+- Each represents a different data source/transformation path 
+
+- Each requires separate mapping entries   
+
+- Do NOT consolidate - they represent different ETL jobs 
+
+- Example: If 3 STEP_IDs target 0UCIODS08, generate 3 separate mapping sections 
+
+  
+
+**Pre-Submission Checklist:** 
+
+- **Transformation Rule** is populated in equivalent SQL if FIELD_ROUTINE_PART1/2 OR TAR_CONVEXIT values are available 
+
+- Ensure each combination of (STEP_ID, TARGET_NAME) are available 
+
+- Ensure all the distinct TARGET_COL for each TARGET_NAME table are present 
+
+- FIELD_ROUTINE_PART1/2 values extracted for all applicable fields and populate **SAP Transformation Routine** 
+
+- TAR_CONVEXIT values extracted for all applicable fields and populate **Target Data Conversion** 
+  
+
+**Error Handling:** 
+
+- For complex ABAP: Set confidence to "Medium/Low" and explain in Comment field 
+
+- For missing data: Note in Comment field for manual review 
+
+--- 
+
+**Expected Output:** Complete source-to-target mapping table ready for Microsoft Fabric Notebook ETL job development **ORDER BY TARGET_NAME , STEP_ID **. 
+ 
+
+--- 
